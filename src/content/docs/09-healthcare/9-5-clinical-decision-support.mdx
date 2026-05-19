@@ -1,0 +1,157 @@
+---
+title: "9-5. 임상 의사결정 지원과 환자 안전"
+description: "온톨로지 기반 CDSS — 약물 상호작용 탐지, 투여 오류 방지, 알림 피로 문제와 설명 가능한 AI 통합"
+sidebar:
+  order: 5
+learning_objectives:
+  - "온톨로지 기반 임상 의사결정 지원 시스템(CDSS)의 구조와 작동 방식을 설명할 수 있다"
+  - "약물-약물 상호작용, 약물-알레르기 충돌 탐지에 KG가 활용되는 방식을 설명할 수 있다"
+  - "알림 피로(alert fatigue) 문제와 온톨로지 기반 우선순위화 전략을 설명할 수 있다"
+  - "설명 가능한 AI와 온톨로지가 결합해 CDSS의 신뢰성을 높이는 방식을 설명할 수 있다"
+prerequisites:
+  - "SNOMED CT, FHIR 기본 개념 (9-1 챕터)"
+  - "온톨로지 추론 기본 개념"
+estimated_minutes: 32
+references:
+  - title: "Berner 2007 — Clinical Decision Support Systems: Theory and Practice (Springer)"
+    url: "https://doi.org/10.1007/978-0-387-38319-4"
+  - title: "Slight et al. 2013 — Overrides of medication-related CDSS alerts (JAMIA)"
+    url: "https://doi.org/10.1136/amiajnl-2012-001073"
+  - title: "Sutton et al. 2020 — Overview of clinical decision support systems (npj Digital Medicine)"
+    url: "https://doi.org/10.1038/s41746-020-0221-y"
+  - title: "Reiter et al. 2021 — Ontology-based CDSS for drug-drug interactions (J Biomedical Semantics)"
+    url: "https://doi.org/10.1186/s13326-021-00233-5"
+---
+
+import Quiz from '../../../components/learning/Quiz.tsx';
+
+임상 의사결정 지원 시스템(Clinical Decision Support System, CDSS)은 환자 데이터와 의료 지식을 결합해 임상 의사결정을 돕는 소프트웨어다. 규칙 기반 시스템에서 시작해 온톨로지 기반 추론, 그리고 LLM과의 결합으로 발전하고 있다. 이 챕터에서는 온톨로지가 CDSS의 지식 표현과 추론에서 담당하는 역할을 중심으로 살펴본다.
+
+## CDSS의 기본 구조
+
+CDSS는 크게 세 구성요소로 이루어진다.
+
+**지식 기반(Knowledge Base):** 의학 지식, 임상 가이드라인, 약물 정보를 저장한다. 온톨로지와 KG가 이 역할을 담당한다.
+
+**추론 엔진(Inference Engine):** 환자 데이터와 지식 기반을 결합해 권고사항을 생성한다. 규칙 기반(IF-THEN), OWL 추론, 또는 머신러닝이 사용된다.
+
+**통신 인터페이스:** 임상 워크플로에 권고사항을 전달한다. EMR 내 알림, 팝업, 스코어카드 형태로 표시된다.
+
+## 온톨로지 기반 약물 안전 검사
+
+### 약물-약물 상호작용(DDI) 탐지
+
+약물-약물 상호작용은 두 가지 이상의 약물을 병용할 때 예상치 못한 약리 효과가 나타나는 현상이다. 임상적으로 유의한 DDI는 환자 위해와 직결된다.
+
+온톨로지 기반 DDI 탐지는 단순 쌍별(pair-wise) 검사보다 더 정교하게 작동한다.
+
+```sparql
+# SNOMED CT + DrugBank 기반 DDI 탐지 예시 개념
+SELECT ?drug1 ?drug2 ?mechanism ?severity WHERE {
+  # 환자의 현재 복용 약물
+  ?patient fhir:MedicationRequest ?med1, ?med2 .
+  ?med1 fhir:medicationCodeableConcept/fhir:coding/fhir:code ?drug1Code .
+  ?med2 fhir:medicationCodeableConcept/fhir:coding/fhir:code ?drug2Code .
+
+  # DrugBank DDI 지식그래프 조회
+  ?interaction db:drug1 ?drug1 ;
+               db:drug2 ?drug2 ;
+               db:mechanism ?mechanism ;
+               db:severity ?severity .
+  ?drug1 db:rxnormCode ?drug1Code .
+  ?drug2 db:rxnormCode ?drug2Code .
+
+  FILTER(?severity = "major")
+}
+```
+
+온톨로지의 클래스 계층을 활용하면 개별 약물 성분이 아닌 **약물 클래스** 수준의 DDI도 탐지할 수 있다. 예: "SSRI 계열 약물과 MAO 억제제의 병용은 금기"라는 규칙이 있으면, 특정 SSRI 성분이 처방됐을 때 해당 성분이 SSRI 클래스의 서브클래스임을 추론해 경고를 발생시킨다.
+
+### 약물-알레르기 충돌 탐지
+
+환자의 알레르기 기록과 처방 약물 간의 충돌을 탐지한다. SNOMED CT를 통해 알레르기 물질의 화학적 계층을 추론에 활용한다.
+
+예시 시나리오: 환자가 "페니실린 알레르기"를 가지고 있을 때, 처방된 아목시실린이 페니실린 계열 항생제의 서브클래스임을 SNOMED CT 계층 추론으로 식별하고 경고를 발생시킨다. 단순 문자열 매칭이라면 "아목시실린"과 "페니실린"이 다른 단어이므로 충돌을 탐지하지 못한다.
+
+### 용량 오류 방지
+
+체중, 신기능(GFR), 연령에 따른 약물 용량 조정 규칙을 온톨로지로 인코딩한다.
+
+```turtle
+# 신기능 저하 시 메트포르민 용량 조정 규칙 (개념적 표현)
+:MetforminDoseAdjustmentRule a :ClinicalRule ;
+    :applicableDrug rxnorm:6809 ;  # 메트포르민
+    :condition [
+        :observation loinc:33914-3 ;  # eGFR
+        :operator :lessThan ;
+        :value 30 ;
+        :unit "mL/min/1.73m²"
+    ] ;
+    :recommendation :Contraindicated ;
+    :evidenceSource :FDA_Label_2023 .
+```
+
+## 알림 피로(Alert Fatigue) 문제
+
+CDSS의 가장 심각한 실패 모드 중 하나는 알림 피로다. Slight et al. (2013)의 연구에 따르면 외래 환경에서 CDSS 알림의 약 90%가 임상의에 의해 무시(override)됐다. 임상의가 알림을 너무 자주 보면 실제로 중요한 경고도 습관적으로 무시하게 된다.
+
+**알림 피로의 원인:**
+- 임상적으로 관련 없는 DDI까지 모두 경고
+- 이미 임상의가 알고 있는 상황에서 반복 경고
+- 환자 컨텍스트를 고려하지 않은 규칙 적용
+- 너무 낮은 심각도의 알림이 높은 빈도로 표시
+
+### 온톨로지 기반 알림 우선순위화
+
+온톨로지와 환자 KG를 결합하면 알림 관련성을 더 정교하게 평가할 수 있다.
+
+**환자 컨텍스트 반영:** 신부전 환자에게 신독성 약물 경고는 더 높은 우선순위로, 건강한 신기능을 가진 환자에게는 낮은 우선순위로 표시한다. 환자의 현재 검사 결과(eGFR, 간 기능 지표)를 FHIR 리소스에서 실시간으로 조회해 규칙의 트리거 조건을 정교화한다.
+
+**중복 알림 통합:** 동일 원인에서 비롯된 여러 알림을 하나로 통합해 제시한다. 온톨로지 추론으로 "이 세 가지 경고는 모두 동일한 약물 상호작용 메커니즘에서 비롯된다"고 인식하면 통합 경고 하나를 표시한다.
+
+**근거 기반 심각도 분류:** 알림의 심각도를 무작위로 설정하지 않고, 근거 수준(Evidence Grade)으로 분류한다. 무작위 대조 시험(RCT)에 근거한 상호작용은 전문가 의견에 근거한 것보다 높은 우선순위를 받는다.
+
+## 임상 가이드라인 온톨로지
+
+임상 가이드라인(ADA 당뇨병 가이드라인, JNC 고혈압 가이드라인 등)을 컴퓨터가 실행 가능한 형식으로 표현하는 연구가 오랫동안 진행되어 왔다.
+
+**GLIF (Guideline Interchange Format):** 임상 가이드라인을 흐름도 형태로 표현하는 초기 표준.
+
+**Arden Syntax:** HL7 표준으로, Medical Logic Module(MLM) 형태로 임상 규칙을 인코딩. EMR과 연동해 실행할 수 있다.
+
+**FHIR CPG (Clinical Practice Guidelines):** 현재 HL7에서 개발 중인 FHIR 기반 가이드라인 표현 표준. FHIR 리소스(PlanDefinition, ActivityDefinition)로 가이드라인을 표현하고 CDS Hooks 프로토콜로 EMR에 통합한다.
+
+## 설명 가능한 AI + 온톨로지
+
+LLM과 머신러닝 기반 CDSS는 높은 예측 성능을 보이지만, 임상 현장에서 "왜 이 권고를 하는가?"에 답하지 못하면 임상의의 신뢰를 얻기 어렵다.
+
+온톨로지 기반 설명 생성은 이를 해결한다. LLM이 "이 환자에게 약물 A를 주의해야 한다"는 권고를 생성하면, 온톨로지 KG 탐색으로 근거 경로를 찾아 함께 제시한다.
+
+```
+권고: 에녹사파린 용량 감량 고려
+근거 경로:
+  환자 eGFR = 28 mL/min (2024-05-15 측정)
+  → eGFR < 30이면 신기능 심각 저하 (SNOMED CT: 433146000)
+  → 에녹사파린은 신기능 저하 시 주의 약물 (DrugBank: DB01225)
+  → 용량 조정 권고 (FDA 라벨: 2023-09 개정)
+```
+
+이 형태의 설명은 임상의가 권고의 타당성을 빠르게 평가하고, 필요하면 임상 판단으로 무시(informed override)하거나 따를 수 있게 한다.
+
+## 환자 안전과 규제
+
+FDA는 2019년 AI/ML 기반 SaMD(Software as Medical Device) 규제 프레임워크 논의 문서를 발표했다. CDSS가 고위험 임상 의사결정을 자동화하거나 강하게 영향을 미치는 경우 의료기기로 분류될 수 있다.
+
+온톨로지 기반 CDSS는 규제 측면에서 몇 가지 이점이 있다.
+
+- **감사 추적:** 모든 알림의 근거가 온톨로지 경로로 추적 가능하다.
+- **투명한 지식 업데이트:** 지식 기반 변경이 온톨로지 버전으로 관리되어 어떤 규칙이 언제 바뀌었는지 명확하다.
+- **검증 가능성:** 온톨로지 공리와 규칙의 일관성을 자동으로 검사할 수 있다.
+
+반면 순수 블랙박스 머신러닝 모델은 이 요구 사항을 충족하기 어렵다. 하이브리드 접근법(온톨로지 기반 규칙 + LLM 보조)이 규제 준수와 성능의 균형을 맞추는 현실적인 방향으로 주목받고 있다.
+
+---
+
+섹션 09에서는 SNOMED CT·ICD·FHIR 같은 의료 표준 온톨로지부터 GO·ChEBI·DrugBank 같은 생명과학 자원, UK Biobank·Mayo Clinic·FDA의 실제 KG 사례, NHS FDP 국가 플랫폼, 그리고 임상 의사결정 지원까지 의료 분야 온톨로지 응용의 전체 스펙트럼을 살펴봤다.
+
+<Quiz section="09-healthcare" client:load />

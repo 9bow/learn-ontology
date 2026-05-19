@@ -1,0 +1,123 @@
+---
+title: "7-6. 클라우드 관리형 KG 서비스"
+description: "AWS Neptune, Stardog Cloud, Ontotext Cloud — 가격·SLA·기능 비교와 선택 기준"
+sidebar:
+  order: 6
+learning_objectives:
+  - "관리형 KG 서비스가 자체 운영 대비 제공하는 실질적 이점과 트레이드오프를 설명할 수 있다"
+  - "AWS Neptune, Stardog Cloud, Ontotext GraphDB Cloud 각각의 가격 모델과 SLA를 비교할 수 있다"
+  - "팀 규모·기술 역량·예산에 따라 관리형 서비스 도입 여부를 판단할 수 있다"
+prerequisites:
+  - "RDF 트리플스토어 기본 개념 (7-2 챕터)"
+  - "클라우드 IaaS/PaaS 기본 이해"
+estimated_minutes: 25
+references:
+  - title: "Amazon Web Services — Amazon Neptune 개발자 가이드"
+    url: "https://docs.aws.amazon.com/neptune/latest/userguide/"
+  - title: "Stardog — Stardog Cloud 문서"
+    url: "https://docs.stardog.com/cloud/"
+  - title: "Ontotext — GraphDB Cloud 제품 페이지"
+    url: "https://www.ontotext.com/products/graphdb/graphdb-cloud/"
+---
+
+import Quiz from '../../../components/learning/Quiz.tsx';
+
+온프레미스 또는 IaaS 위에 트리플스토어를 직접 운영하면 패치, 백업, 복제, 모니터링을 모두 팀이 책임진다. 관리형(managed) 클라우드 서비스는 이 운영 부담을 서비스 제공자에게 위임하는 대신 유연성 일부를 포기한다. 이 챕터에서는 RDF/KG 영역의 주요 관리형 서비스를 비교한다.
+
+## AWS Neptune
+
+Amazon Neptune은 AWS가 제공하는 완전 관리형 그래프 데이터베이스 서비스다. RDF/SPARQL과 Property Graph/Gremlin·openCypher 두 모델을 하나의 서비스에서 지원한다.
+
+**아키텍처:**
+- **스토리지 분리**: 컴퓨트와 스토리지가 분리된 구조로, 스토리지는 3개 가용 영역(AZ)에 6벌 복제된다.
+- **자동 페일오버**: 기본 인스턴스 장애 시 복제본이 약 30초 이내에 프라이머리로 승격된다.
+- **읽기 확장**: 리전당 최대 15개의 읽기 복제본을 추가할 수 있다.
+- **Neptune Analytics**: 그래프 분석(PageRank, 최단 경로, 커뮤니티 탐지)을 관리형으로 실행하는 별도 서비스(2023년 출시).
+- **Neptune ML**: Amazon SageMaker와 연동해 그래프 위에 GNN 모델을 훈련·배포할 수 있다.
+
+**가격 모델 (2024년 기준, 서울 리전 근사치):**
+- 인스턴스: db.r6g.large 약 $0.285/시간
+- 스토리지: $0.10/GB-월
+- I/O: $0.20/백만 요청
+- 데이터 전송: 리전 내 무료, 외부 전송 추가 과금
+
+**OWL 추론:** RDFS 수준의 추론만 지원한다. OWL RL/DL 추론이 필요하다면 Neptune 외부에서 처리해야 한다.
+
+**SLA:** 월 99.99% 가용성(다중 AZ 배포 시).
+
+**적합 사례:** AWS 생태계에 이미 투자된 조직, OWL 추론 없이 SPARQL/Gremlin 질의 위주의 운영 KG, Neptune Analytics로 그래프 분석을 함께 수행하는 경우.
+
+**한계:** OWL 추론 제한, 벤더 종속, 복잡한 SPARQL(SPARQL 1.1 일부 미지원 가능성).
+
+## Stardog Cloud
+
+Stardog Cloud는 Stardog 엔터프라이즈 KG 플랫폼의 관리형 클라우드 버전이다. AWS, Azure, GCP 위에 배포할 수 있다.
+
+**주요 기능:**
+- **OWL 추론**: QL, RL, EL, DL 추론 모드를 클라우드에서도 완전히 사용할 수 있다.
+- **Virtual Graphs**: 관계형 DB·CSV·MongoDB를 R2RML/SMS2 매핑으로 실시간 가상화한다. 클라우드 환경에서도 온프레미스 DB와 VPN으로 연결해 사용할 수 있다.
+- **Stardog Studio 포함**: 웹 기반 SPARQL IDE와 데이터 탐색기가 기본 제공된다.
+- **역할 기반 접근 제어**: 데이터베이스·그래프·리소스 단위로 세밀한 권한을 설정할 수 있다.
+
+**가격 모델:**
+- 코어(vCPU) 기반 라이선스 + 클라우드 인프라 비용 합산.
+- 정확한 가격은 영업팀 문의가 필요하며 공개 가격표는 없다.
+- Stardog Basics: 소규모 팀 대상 저가 플랜이 있으나 기능 제한이 있다.
+
+**SLA:** 엔터프라이즈 계약 기준 99.9% 이상 가용성.
+
+**적합 사례:** OWL 추론과 가상화가 동시에 필요한 엔터프라이즈, 온프레미스 Stardog에서 클라우드로 마이그레이션하는 팀.
+
+**한계:** 비공개 가격 정책으로 예산 계획이 어렵다. 소규모 프로젝트에는 과도할 수 있다.
+
+## Ontotext GraphDB Cloud
+
+Ontotext GraphDB Cloud는 GraphDB를 AWS 위에 완전 관리형으로 제공하는 서비스다. GraphDB Marketplace(AWS Marketplace)를 통해 구독할 수 있다.
+
+**주요 기능:**
+- **OWL 2 RL 추론**: GraphDB 엔진 그대로 클라우드에서 실행되어 OWL 2 RL 추론을 완전 지원한다.
+- **GraphDB Workbench**: 웹 기반 관리·탐색 UI가 포함된다.
+- **자동 백업**: 일별 자동 백업과 특정 시점 복구(PITR)를 지원한다.
+- **클러스터**: 마스터-워커 복제 구성으로 읽기 확장이 가능하다.
+
+**가격 모델:**
+- AWS Marketplace 구독 기반. 인스턴스 크기에 따라 시간당 과금.
+- GraphDB 라이선스 비용 + EC2 인스턴스 비용 포함.
+- Free 에디션도 AWS Marketplace에서 EC2 위에 직접 배포 가능(라이선스 비용 없음).
+
+**SLA:** AWS 인프라 SLA에 준하며 별도 GraphDB Cloud SLA는 Ontotext와 계약으로 결정된다.
+
+**적합 사례:** 생명과학·미디어 분야, OWL 2 RL 추론이 필요하고 AWS에 배포하려는 팀, GraphDB 커뮤니티 에디션에서 관리형으로 전환하는 경우.
+
+## 관리형 서비스 비교
+
+| 항목 | AWS Neptune | Stardog Cloud | GraphDB Cloud |
+|------|------------|---------------|---------------|
+| 기반 엔진 | Neptune (자체) | Stardog | GraphDB |
+| OWL 추론 | RDFS만 | QL~DL | RL 완전 |
+| 가상 그래프 | 미지원 | 네이티브 | 플러그인 |
+| 가격 투명성 | 공개 (사용량 기반) | 비공개 (영업 협의) | AWS Marketplace |
+| 클라우드 | AWS | AWS/Azure/GCP | AWS |
+| SLA | 99.99% (다중 AZ) | 99.9% 이상 | AWS 인프라 준함 |
+| 그래프 분석 | Neptune Analytics | 미지원 | 미지원 |
+| 생태계 통합 | AWS 완전 통합 | Stardog 생태계 | Ontotext 생태계 |
+
+## 자체 운영 vs 관리형 선택 기준
+
+**관리형 서비스를 선택해야 하는 경우:**
+- 데이터베이스 운영 전문 인력이 없을 때
+- 빠른 PoC·MVP 구축이 우선일 때
+- 가용성 SLA가 계약상 요구될 때
+- 클라우드 비용 가시성이 중요할 때 (Neptune)
+
+**자체 운영이 합리적인 경우:**
+- 데이터 거버넌스 규정으로 클라우드 저장이 제한될 때
+- 특수한 추론 구성이나 플러그인이 필요할 때
+- 장기적으로 라이선스 비용 절감이 더 중요할 때
+- 이미 Kubernetes 운영 역량이 있을 때
+
+---
+
+섹션 07에서는 모델링 도구부터 추론기, 클라우드 서비스까지 온톨로지·KG 구현 기술 스택 전반을 살펴봤다. 다음 섹션에서는 LLM과 지식그래프의 결합 방식을 다룬다.
+
+<Quiz section="07-techstack" client:load />

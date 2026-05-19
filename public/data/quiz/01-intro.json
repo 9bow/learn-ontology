@@ -1,0 +1,182 @@
+[
+  {
+    "id": "q1",
+    "question": "Tom Gruber가 1993년 논문에서 제시한 온톨로지의 정의로 올바른 것은?",
+    "options": [
+      "A specification of a conceptualization",
+      "A formal language for knowledge representation",
+      "A shared vocabulary for data exchange",
+      "A classification of domain entities"
+    ],
+    "answer": 0,
+    "explanation": "Gruber(1993)의 정의는 'An ontology is a specification of a conceptualization'입니다. 즉, 개념화(특정 도메인에 대한 추상적 모델)를 명시적으로 기술한 것이 온톨로지입니다."
+  },
+  {
+    "id": "q2",
+    "question": "'ontology'라는 단어의 어원으로 올바른 조합은?",
+    "options": [
+      "그리스어 ontos(존재) + logos(논리·학문)",
+      "라틴어 ontus(실체) + logia(기록)",
+      "그리스어 onto(개체) + logy(연구)",
+      "라틴어 omnis(전체) + logos(논리)"
+    ],
+    "answer": 0,
+    "explanation": "ontology는 그리스어 ontos(존재)와 logos(논리·학문)의 합성어입니다. '존재에 관한 학문'이라는 뜻에서 출발합니다."
+  },
+  {
+    "id": "q3",
+    "question": "아리스토텔레스가 『범주론(Categories)』에서 제안한 최상위 범주에 해당하지 않는 것은?",
+    "options": [
+      "실체(substance)",
+      "양(quantity)",
+      "관계(relation)",
+      "언어(language)"
+    ],
+    "answer": 3,
+    "explanation": "아리스토텔레스의 『범주론』에서는 실체·양·질·관계 등 열 가지 최상위 범주를 제시했습니다. '언어'는 아리스토텔레스의 범주 목록에 포함되지 않습니다."
+  },
+  {
+    "id": "q4",
+    "question": "'ontologia'라는 용어를 문헌에 처음 남긴 것으로 알려진 17세기 독일 철학자는 누구인가?",
+    "options": [
+      "크리스티안 볼프(Christian Wolff)",
+      "야콥 로하르트(Jacob Lorhard)",
+      "임마누엘 칸트(Immanuel Kant)",
+      "게오르크 헤겔(Georg Hegel)"
+    ],
+    "answer": 1,
+    "explanation": "17세기에 야콥 로하르트(Jacob Lorhard)가 'ontologia'라는 용어를 처음 문헌에 남겼고, 크리스티안 볼프가 이를 체계화했습니다."
+  },
+  {
+    "id": "q5",
+    "question": "1980~90년대 AI 연구자들이 온톨로지의 필요성을 인식하게 된 핵심 문제는?",
+    "options": [
+      "컴퓨터 연산 속도의 한계",
+      "서로 다른 시스템 간 동일 단어의 의미 불일치",
+      "데이터베이스 저장 용량 부족",
+      "자연어 처리 알고리즘의 부재"
+    ],
+    "answer": 1,
+    "explanation": "두 시스템이 'patient' 같은 단어를 서로 다른 방식으로 이해하면 데이터 교환이 불가능했습니다. 이 상호운용성 문제가 공유된 개념화(온톨로지)의 필요성을 낳았습니다."
+  },
+  {
+    "id": "q6",
+    "question": "정보과학적 온톨로지에서 'Class'에 해당하는 설명으로 옳은 것은?",
+    "options": [
+      "클래스의 구체적 인스턴스",
+      "클래스와 개체 간의 관계 또는 데이터 값",
+      "개념의 집합",
+      "클래스와 속성에 대한 제약 및 추론 규칙"
+    ],
+    "answer": 2,
+    "explanation": "Class는 개념의 집합입니다. 예를 들어 `Person`, `Drug`, `Organization`이 클래스에 해당합니다. 구체적 인스턴스는 Individual, 관계는 Property, 제약 규칙은 Axiom입니다."
+  },
+  {
+    "id": "q7",
+    "question": "온톨로지를 단순한 어휘 목록(glossary)이나 데이터베이스 스키마와 구별하는 핵심 특징은?",
+    "options": [
+      "XML 파일 형식으로 저장 가능",
+      "추론(reasoning) 능력",
+      "다국어 지원",
+      "버전 관리 지원"
+    ],
+    "answer": 1,
+    "explanation": "온톨로지는 형식화된 공리를 통해 컴퓨터가 추론을 수행할 수 있게 합니다. 이 추론 능력이 단순 어휘 목록이나 데이터베이스 스키마와 구별되는 핵심입니다."
+  },
+  {
+    "id": "q8",
+    "question": "'응용 존재론(applied ontology)'이라는 분야를 체계화하고 철학과 정보과학의 연속성을 강조한 학자는?",
+    "options": [
+      "Tom Gruber",
+      "Tim Berners-Lee",
+      "Barry Smith",
+      "Nicola Guarino"
+    ],
+    "answer": 2,
+    "explanation": "Barry Smith는 응용 존재론(applied ontology) 분야를 체계화하고, 철학적 존재론과 정보과학적 온톨로지의 연속성을 강조했습니다. 국제 저널 Applied Ontology(IOS Press, 2005~)가 이 분야를 대표합니다."
+  },
+  {
+    "id": "q9",
+    "question": "철학적 존재론과 정보과학적 온톨로지의 공통점으로 가장 적절한 것은?",
+    "options": [
+      "형식 언어(RDF, OWL)를 사용한다",
+      "범주화와 관계의 명시적 정의를 추구한다",
+      "컴퓨터 시스템 간 데이터 교환을 목적으로 한다",
+      "자연어 논증을 기반으로 한다"
+    ],
+    "answer": 1,
+    "explanation": "두 분야 모두 '세계에 무엇이 존재하는가, 그리고 그것들은 어떻게 관계 맺는가'라는 질문을 다루며, 범주화와 관계의 명시적 정의를 추구합니다. 표현 수단(자연어 vs 형식 언어)만 다릅니다."
+  },
+  {
+    "id": "q10",
+    "question": "OWL 온톨로지에서 `Class`와 `Property`를 구분하는 것이 아리스토텔레스의 어떤 구분과 유사한가?",
+    "options": [
+      "존재와 비존재",
+      "실체(substance)와 속성(attribute)의 구분",
+      "보편자(universal)와 특수자(particular)의 구분",
+      "형상(form)과 질료(matter)의 구분"
+    ],
+    "answer": 1,
+    "explanation": "아리스토텔레스가 '실체'와 '속성'을 구분한 것처럼, OWL도 Class(종류)와 Property(속성·관계)를 구분합니다. 이는 우연이 아니라 철학에서 정보과학으로 이어지는 지적 계보입니다."
+  },
+  {
+    "id": "q11",
+    "question": "Tom Gruber가 정보과학적 온톨로지를 정식화한 대학교는?",
+    "options": [
+      "MIT",
+      "카네기멜론 대학교",
+      "스탠퍼드 대학교",
+      "UC 버클리"
+    ],
+    "answer": 2,
+    "explanation": "Tom Gruber는 1991년 스탠퍼드 대학교에서 공유된 개념화 아이디어를 정식화했고, 1993년 논문에서 온톨로지의 정의를 발표했습니다."
+  },
+  {
+    "id": "q12",
+    "question": "정보과학적 온톨로지에서 'Axiom(공리)'의 역할로 가장 적절한 것은?",
+    "options": [
+      "개념의 집합을 정의한다",
+      "클래스의 구체적 인스턴스를 나타낸다",
+      "클래스와 속성에 대한 제약 및 추론 규칙을 표현한다",
+      "클래스 간의 데이터 값을 저장한다"
+    ],
+    "answer": 2,
+    "explanation": "공리(Axiom)는 클래스와 속성에 대한 제약과 추론 규칙을 표현합니다. 예를 들어 '모든 의사는 사람이다'와 같은 관계가 공리에 해당합니다."
+  },
+  {
+    "id": "q13",
+    "question": "철학적 존재론의 표현 수단과 정보과학적 온톨로지의 표현 수단을 올바르게 짝지은 것은?",
+    "options": [
+      "철학: SQL, 정보과학: 자연어",
+      "철학: 형식 언어, 정보과학: 자연어 논증",
+      "철학: 자연어 논증, 정보과학: 형식 언어(RDF, OWL)",
+      "철학: XML, 정보과학: JSON-LD"
+    ],
+    "answer": 2,
+    "explanation": "철학적 존재론은 자연어 논증으로, 정보과학적 온톨로지는 RDF·OWL 같은 형식 언어로 표현됩니다. 두 분야는 목적(존재의 본질 이해 vs 지식 공유·추론)도 다릅니다."
+  },
+  {
+    "id": "q14",
+    "question": "'온톨로지'라는 용어를 정보과학에서 사용하게 된 것이 의도적이었던 이유는?",
+    "options": [
+      "철학 용어가 마케팅에 유리했기 때문에",
+      "AI 연구자들이 자신의 작업이 '세계는 어떻게 구성되어 있는가'라는 철학적 질문에 답한다고 보았기 때문에",
+      "국제 표준 기관(W3C)이 용어를 지정했기 때문에",
+      "데이터베이스 커뮤니티의 반발을 피하기 위해서"
+    ],
+    "answer": 1,
+    "explanation": "1990년대 AI 연구자들은 자신들의 작업이 '세계는 어떻게 구성되어 있는가'라는 오랜 철학적 질문에 컴퓨터 과학적 도구로 답하는 것임을 인식하고, 의도적으로 'ontology'라는 철학 용어를 채택했습니다."
+  },
+  {
+    "id": "q15",
+    "question": "다음 중 정보과학적 온톨로지의 구성 요소 네 가지를 모두 올바르게 나열한 것은?",
+    "options": [
+      "Class, Individual, Property, Axiom",
+      "Table, Row, Column, Index",
+      "Node, Edge, Label, Weight",
+      "Subject, Predicate, Object, Graph"
+    ],
+    "answer": 0,
+    "explanation": "정보과학적 온톨로지의 네 가지 핵심 구성 요소는 Class(개념 집합), Individual(클래스 인스턴스), Property(관계/데이터 값), Axiom(제약·추론 규칙)입니다."
+  }
+]

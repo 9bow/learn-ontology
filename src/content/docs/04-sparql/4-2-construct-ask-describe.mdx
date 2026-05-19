@@ -1,0 +1,312 @@
+---
+title: "4-2. CONSTRUCT, ASK, DESCRIBE"
+description: "SELECT 외의 세 가지 SPARQL 질의 형식—CONSTRUCT, ASK, DESCRIBE—의 용도와 실제 활용 패턴을 학습합니다."
+sidebar:
+  order: 42
+learning_objectives:
+  - "CONSTRUCT 쿼리로 새로운 RDF 그래프를 생성하는 방법을 이해한다"
+  - "ASK 쿼리로 패턴 존재 여부를 불리언으로 확인한다"
+  - "DESCRIBE 쿼리로 리소스 주변 트리플을 탐색한다"
+  - "세 형식의 적합한 사용 시나리오를 구분한다"
+prerequisites:
+  - "4-1: SPARQL SELECT 기초"
+  - "RDF 트리플과 그래프 개념"
+estimated_minutes: 30
+references:
+  - title: "W3C. SPARQL 1.1 Query Language — CONSTRUCT (2013)"
+    url: "https://www.w3.org/TR/sparql11-query/#construct"
+  - title: "W3C. SPARQL 1.1 Query Language — ASK (2013)"
+    url: "https://www.w3.org/TR/sparql11-query/#ask"
+  - title: "W3C. SPARQL 1.1 Query Language — DESCRIBE (2013)"
+    url: "https://www.w3.org/TR/sparql11-query/#describe"
+  - title: "DuCharme, B. Learning SPARQL 2nd ed. O'Reilly (2013)"
+    url: "https://www.oreilly.com/library/view/learning-sparql/9781449371784/"
+---
+
+## SELECT 너머의 세 가지 쿼리 형식
+
+SPARQL 1.1은 네 가지 쿼리 형식을 정의합니다. 앞 챕터에서 다룬 SELECT는 변수 바인딩의 표 형태를 반환하지만, 나머지 세 형식은 각각 다른 목적과 출력 형태를 가집니다.
+
+| 형식 | 반환 타입 | 주요 용도 |
+|---|---|---|
+| SELECT | 결과 집합(표) | 데이터 조회, 집계 |
+| **CONSTRUCT** | RDF 그래프 | 데이터 변환, ETL, 온톨로지 매핑 |
+| **ASK** | Boolean (true/false) | 패턴 존재 확인, 유효성 검사 |
+| **DESCRIBE** | RDF 그래프 | 리소스 탐색, 스냅숏 추출 |
+
+---
+
+## CONSTRUCT: 새로운 그래프 생성
+
+CONSTRUCT는 WHERE 절로 매칭한 변수를 템플릿에 대입해 새 RDF 트리플을 생성합니다. 출력은 RDF 그래프이므로 Turtle, RDF/XML, JSON-LD 등으로 직렬화할 수 있습니다.
+
+### 기본 문법
+
+```sparql
+CONSTRUCT {
+  # 생성할 트리플 패턴 (템플릿)
+  ?subject ?newPredicate ?newObject .
+}
+WHERE {
+  # 기존 그래프에서 데이터 추출
+  ?subject ?oldPredicate ?value .
+}
+```
+
+### 예제 1: 온톨로지 간 매핑 (Schema.org → FOAF)
+
+서로 다른 어휘를 사용하는 데이터를 통합할 때 CONSTRUCT가 핵심 역할을 합니다.
+
+```sparql
+PREFIX schema: <https://schema.org/>
+PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
+PREFIX rdfs:   <http://www.w3.org/2000/01/rdf-schema#>
+
+CONSTRUCT {
+  ?person a foaf:Person ;
+          foaf:name ?name ;
+          foaf:mbox ?email .
+}
+WHERE {
+  ?person a schema:Person ;
+          schema:name ?name .
+  OPTIONAL { ?person schema:email ?email . }
+}
+```
+
+Schema.org 어휘로 표현된 사람 데이터를 FOAF 어휘로 변환합니다. 이 패턴은 **데이터 브리지(bridge ontology)** 구현에 자주 사용됩니다.
+
+### 예제 2: 추론 결과 물질화
+
+추론 엔진 없이 간단한 추이적 관계를 CONSTRUCT로 계산해 저장합니다.
+
+```sparql
+PREFIX org: <http://www.w3.org/ns/org#>
+
+CONSTRUCT {
+  ?employee org:memberOf ?topOrg .
+}
+WHERE {
+  ?employee org:memberOf ?dept .
+  ?dept org:subOrganizationOf+ ?topOrg .
+}
+```
+
+이 쿼리는 부서 계층을 따라 모든 상위 조직과의 멤버십 트리플을 생성합니다. 결과를 트리플스토어에 적재하면 복잡한 경로 탐색 없이 직접 질의할 수 있습니다.
+
+### 예제 3: 데이터 정제 — 빈 노드를 URI로 교체
+
+```sparql
+PREFIX ex:   <http://example.org/>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+
+CONSTRUCT {
+  ex:person_{?id} a ex:Person ;
+                  ex:name ?name ;
+                  ex:age  ?age .
+}
+WHERE {
+  _:b a ex:Person ;
+      ex:id ?id ;
+      ex:name ?name ;
+      ex:age  ?age .
+}
+```
+
+빈 노드(blank node)는 그래프 경계를 넘어 참조할 수 없으므로, 식별자 기반의 URI로 교체해 데이터를 이식 가능하게 만듭니다.
+
+### CONSTRUCT WHERE 단축 형식
+
+템플릿과 WHERE 패턴이 동일할 경우 생략 가능합니다.
+
+```sparql
+PREFIX dbo: <http://dbpedia.org/ontology/>
+
+CONSTRUCT WHERE {
+  ?city a dbo:City ;
+        dbo:country ?country ;
+        dbo:populationTotal ?pop .
+}
+LIMIT 100
+```
+
+결과는 WHERE 패턴과 동일한 트리플로 구성된 서브그래프입니다.
+
+---
+
+## ASK: 불리언 존재 확인
+
+ASK는 WHERE 패턴에 매칭되는 해가 하나라도 존재하면 `true`, 없으면 `false`를 반환합니다. 데이터 유효성 검사, 전제 조건 확인, API 응답 최적화에 유용합니다.
+
+### 기본 문법
+
+```sparql
+ASK {
+  # 존재를 확인할 패턴
+  ?s ?p ?o .
+}
+```
+
+반환 형식 예시 (SPARQL JSON):
+
+```json
+{
+  "boolean": true
+}
+```
+
+### 예제 4: 엔티티 존재 확인
+
+```sparql
+PREFIX wd:  <http://www.wikidata.org/entity/>
+PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+
+ASK {
+  wd:Q9662 wdt:P17 wd:Q884 .   # 삼성이 대한민국 소재인가?
+}
+```
+
+애플리케이션 코드에서 데이터 존재 여부를 확인할 때, SELECT COUNT를 쓰는 것보다 ASK가 훨씬 효율적입니다. 엔진은 첫 번째 해를 찾는 순간 탐색을 중단할 수 있기 때문입니다.
+
+### 예제 5: 데이터 무결성 검사
+
+```sparql
+PREFIX ex:   <http://example.org/>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+
+ASK {
+  ?person a ex:Employee ;
+          ex:salary ?salary .
+  FILTER (?salary < 0)
+}
+```
+
+급여가 음수인 직원이 존재하면 `true`를 반환합니다. 데이터 파이프라인의 검증 단계에서 이런 ASK 쿼리를 일괄 실행하면 SHACL 없이도 기본적인 데이터 품질 검사를 구현할 수 있습니다.
+
+### 예제 6: 클래스 일관성 확인
+
+```sparql
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX ex:  <http://example.org/>
+
+ASK {
+  ?x a ex:Vegetarian ;
+     a ex:MeatEater .
+}
+```
+
+상호 배타적인 두 클래스에 동시에 속하는 인스턴스가 있는지 확인합니다. OWL 추론기 없이도 명백한 불일치를 탐지할 수 있습니다.
+
+---
+
+## DESCRIBE: 리소스 스냅숏 추출
+
+DESCRIBE는 주어진 URI(또는 패턴에 매칭된 URI)에 대한 "유용한" 정보를 RDF 그래프 형태로 반환합니다. 어떤 트리플을 포함할지는 **구현에 따라 다릅니다.** W3C 표준이 결과를 명확히 규정하지 않기 때문입니다.
+
+대부분의 구현은 다음을 포함합니다.
+- 해당 URI가 주어인 모든 트리플
+- 해당 URI가 목적어인 일부 트리플 (역방향 링크)
+- 연결된 빈 노드의 트리플
+
+### 기본 문법
+
+```sparql
+DESCRIBE <http://dbpedia.org/resource/Seoul>
+```
+
+또는 WHERE 절로 여러 리소스를 한 번에 기술합니다.
+
+```sparql
+PREFIX dbo:  <http://dbpedia.org/ontology/>
+PREFIX dbr:  <http://dbpedia.org/resource/>
+
+DESCRIBE ?city
+WHERE {
+  ?city a dbo:City ;
+        dbo:country dbr:South_Korea .
+}
+LIMIT 5
+```
+
+### 예제 7: 지식그래프 탐색 출발점
+
+```sparql
+PREFIX wd: <http://www.wikidata.org/entity/>
+
+DESCRIBE wd:Q9662
+```
+
+Wikidata에서 삼성(Q9662)에 관한 트리플 묶음을 반환합니다. Linked Data 브라우저(예: LodView, Facete)는 내부적으로 DESCRIBE를 사용해 URI 클릭 시 상세 정보를 표시합니다.
+
+### DESCRIBE의 한계
+
+구현마다 반환 결과가 달라 예측이 어렵고, 대용량 데이터에서는 응답이 매우 커질 수 있습니다. 정확한 속성 집합이 필요하다면 DESCRIBE 대신 CONSTRUCT를 사용하는 것이 낫습니다.
+
+---
+
+## 세 형식의 선택 기준
+
+```
+질문: 무엇이 필요한가?
+
+├─ 데이터 조회 및 집계 → SELECT
+│
+├─ 새로운 RDF 그래프 생성 → CONSTRUCT
+│   ├─ 온톨로지 매핑
+│   ├─ 추론 결과 물질화
+│   └─ ETL 파이프라인
+│
+├─ 존재 여부만 확인 → ASK
+│   ├─ 유효성 검사
+│   └─ 전제 조건 확인
+│
+└─ 리소스 전체 스냅숏 → DESCRIBE
+    ├─ Linked Data 탐색
+    └─ 디버깅 및 데이터 검사
+```
+
+---
+
+## 실전: ETL 파이프라인에서의 CONSTRUCT
+
+아래는 외부 데이터셋을 자체 온톨로지로 변환하는 실전 패턴입니다.
+
+```sparql
+PREFIX ext:  <http://external-source.org/vocab/>
+PREFIX own:  <http://mycompany.org/ontology/>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+CONSTRUCT {
+  ?productURI a own:Product ;
+              own:productCode ?code ;
+              own:productName ?name ;
+              own:unitPrice   ?price ;
+              own:category    ?catURI .
+  ?catURI a own:Category ;
+          rdfs:label ?catName .
+}
+WHERE {
+  ?extProduct a ext:Item ;
+              ext:itemCode ?code ;
+              ext:itemName ?name ;
+              ext:price    ?rawPrice ;
+              ext:category ?catName .
+
+  BIND(IRI(CONCAT("http://mycompany.org/product/", str(?code))) AS ?productURI)
+  BIND(IRI(CONCAT("http://mycompany.org/category/", ENCODE_FOR_URI(?catName))) AS ?catURI)
+  BIND(xsd:decimal(?rawPrice) AS ?price)
+}
+```
+
+`BIND`와 `IRI()`, `CONCAT()` 함수를 조합해 새로운 URI를 동적으로 생성하는 패턴은 RDF ETL에서 매우 자주 사용됩니다.
+
+---
+
+## 정리
+
+- **CONSTRUCT** 는 RDF→RDF 변환, 온톨로지 매핑, 추론 물질화에 사용합니다. 출력이 그래프이므로 후속 파이프라인에 바로 적재할 수 있습니다.
+- **ASK** 는 가장 가벼운 형식입니다. 단순 존재 확인은 항상 ASK를 선택하세요.
+- **DESCRIBE** 는 탐색과 디버깅에 편리하지만, 결과가 구현 종속적입니다. 프로덕션 환경에서는 CONSTRUCT로 대체하는 것이 안전합니다.
+
+다음 챕터에서는 SPARQL의 그래프 탐색 능력을 극대화하는 **Property Path** 를 다룹니다.

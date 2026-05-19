@@ -1,0 +1,143 @@
+---
+title: "7-4. 매핑·ETL 도구"
+description: "R2RML, RML, Ontop, Morph-KGC, OBDA — 관계형·비정형 데이터를 RDF 지식그래프로 변환하는 표준과 도구"
+sidebar:
+  order: 4
+learning_objectives:
+  - "R2RML과 RML의 역할 차이 및 각각이 지원하는 데이터 소스 범위를 설명할 수 있다"
+  - "Ontop의 OBDA 접근법이 ETL 기반 접근법과 어떻게 다른지 비교할 수 있다"
+  - "Morph-KGC를 사용해 CSV·JSON 데이터를 RDF로 변환하는 기본 흐름을 설명할 수 있다"
+  - "프로젝트 특성에 따라 물질화(materialization) vs 가상화(virtualization) 전략을 선택할 수 있다"
+prerequisites:
+  - "RDF/Turtle 기본 문법"
+  - "관계형 데이터베이스와 SQL 기초"
+estimated_minutes: 30
+references:
+  - title: "W3C — R2RML: RDB to RDF Mapping Language (2012)"
+    url: "https://www.w3.org/TR/r2rml/"
+  - title: "Iglesias-Molina et al. 2023 — Morph-KGC (Semantic Web)"
+    url: "https://doi.org/10.3233/SW-223135"
+  - title: "Xiao et al. 2020 — Ontop: Answering SPARQL over relational databases"
+    url: "https://doi.org/10.3233/SW-190346"
+  - title: "RML 명세"
+    url: "https://rml.io/specs/rml/"
+---
+
+관계형 데이터베이스, CSV, JSON, XML 같은 레거시 데이터를 RDF 지식그래프로 통합할 때 두 가지 전략이 있다. **물질화(materialization)**: RDF 트리플을 생성해 트리플스토어에 저장한다. **가상화(virtualization)**: 원본 데이터는 그대로 두고 질의 시점에 실시간 변환한다. 이 챕터에서는 두 전략을 지원하는 주요 표준과 도구를 살펴본다.
+
+## R2RML (W3C 표준)
+
+R2RML(RDB to RDF Mapping Language)은 관계형 데이터베이스를 RDF로 매핑하는 W3C 표준이다(2012년 권고안). JDBC로 연결 가능한 모든 RDB를 대상으로 한다.
+
+**핵심 개념:**
+
+- **TriplesMap**: 매핑 단위. 하나의 테이블·뷰·SQL 쿼리를 하나의 TriplesMap으로 정의한다.
+- **SubjectMap**: 트리플의 주어(IRI 또는 Blank Node)를 생성하는 방식 정의.
+- **PredicateObjectMap**: 술어와 목적어 쌍 정의. ObjectMap은 컬럼 값을 IRI 또는 리터럴로 변환한다.
+
+```turtle
+# R2RML 예시: employees 테이블을 foaf:Person으로 매핑
+<#TriplesMapEmployee>
+  rr:logicalTable [ rr:tableName "employees" ];
+  rr:subjectMap [
+    rr:template "http://example.org/employee/{id}";
+    rr:class foaf:Person
+  ];
+  rr:predicateObjectMap [
+    rr:predicate foaf:name;
+    rr:objectMap [ rr:column "name" ]
+  ] .
+```
+
+**한계:** RDB 전용이다. CSV, JSON, XML, API 등 비정형·반정형 데이터 소스는 지원하지 않는다.
+
+## RML (RDB to RDF Mapping Language 확장)
+
+RML은 R2RML을 일반화해 CSV, JSON, XML, SPARQL 결과, 웹 API 등 다양한 소스를 지원하는 커뮤니티 명세다(Ghent University 주도).
+
+**R2RML과의 차이:**
+
+- `rr:logicalTable` 대신 `rml:logicalSource`를 사용해 CSV, JSON Path, XPath, SPARQL 결과를 소스로 지정할 수 있다.
+- `rml:referenceFormulation`: JSON Path, XPath, CSV 등 레퍼런스 방식을 명시한다.
+
+```turtle
+# RML 예시: CSV 파일 매핑
+<#PersonMapping>
+  rml:logicalSource [
+    rml:source "persons.csv";
+    rml:referenceFormulation ql:CSV
+  ];
+  rr:subjectMap [
+    rr:template "http://example.org/person/{id}";
+    rr:class schema:Person
+  ];
+  rr:predicateObjectMap [
+    rr:predicate schema:name;
+    rr:objectMap [ rml:reference "name" ]
+  ] .
+```
+
+**RML 확장(RML-star):** RDF-star 트리플을 생성하는 RML-star 명세도 활발히 개발 중이다.
+
+## Morph-KGC
+
+Morph-KGC는 Universidad Politécnica de Madrid에서 개발한 RML 구현체로, 대규모 데이터 물질화에 특화됐다.
+
+**특징:**
+- **매핑 파티셔닝**: 대규모 매핑을 독립적인 파티션으로 분할해 병렬 처리한다. 수억 트리플 생성도 효율적으로 처리한다.
+- **다중 소스 지원**: CSV, JSON, XML, Parquet, SQL DB, SPARQL 엔드포인트를 소스로 지원한다.
+- **Python API**: 명령행 도구와 함께 Python 라이브러리로도 사용할 수 있어 데이터 파이프라인에 통합하기 쉽다.
+- **오픈소스**: Apache 2 라이선스.
+
+```python
+# Morph-KGC Python API 사용 예시
+import morph_kgc
+
+config = """
+[DataSource1]
+mappings: mapping.ttl
+"""
+graph = morph_kgc.materialize(config)
+# graph는 rdflib.Graph 객체
+```
+
+**적합 사례:** 일괄 ETL 파이프라인, 정적 또는 주기적 데이터 갱신, 연구 데이터 통합.
+
+## Ontop (OBDA 가상화)
+
+Ontop은 OBDA(Ontology-Based Data Access) 접근법을 구현한 오픈소스 도구다. 트리플을 물질화하지 않고, R2RML/OBDA 매핑을 기반으로 SPARQL 쿼리를 SQL로 실시간 재작성해 RDB에 직접 실행한다.
+
+**OBDA 원리:**
+
+1. 사용자가 온톨로지 용어로 SPARQL 쿼리를 작성한다.
+2. Ontop이 매핑 규칙과 온톨로지를 참조해 SPARQL을 SQL로 변환한다.
+3. 변환된 SQL이 RDB에서 실행되고 결과가 RDF로 반환된다.
+
+**특징:**
+- **OWL 2 QL 추론**: OWL 2 QL 프로파일 공리를 쿼리 재작성에 반영한다. 온톨로지의 서브클래스 관계가 SQL에 자동으로 반영된다.
+- **JDBC 범용**: PostgreSQL, MySQL, Oracle, SQL Server, DuckDB 등 JDBC 드라이버가 있는 모든 DB에 연결할 수 있다.
+- **Protégé 플러그인**: Protégé에서 Ontop 플러그인으로 매핑을 편집하고 SPARQL을 테스트할 수 있다.
+- **데이터 이동 없음**: 원본 RDB 데이터를 복사하거나 변환하지 않아 데이터 신선도가 보장된다.
+
+**한계:** 복잡한 SPARQL(OPTIONAL, UNION, 집계 등)은 SQL로 재작성 시 성능이 저하될 수 있다. OWL DL 추론은 지원하지 않는다.
+
+**적합 사례:** 레거시 RDB를 변경하지 않고 SPARQL 인터페이스를 노출해야 할 때, 실시간 데이터 갱신이 중요할 때.
+
+## 물질화 vs 가상화 비교
+
+| 항목 | 물질화 (Morph-KGC, RML 구현체) | 가상화 (Ontop) |
+|------|-------------------------------|---------------|
+| 데이터 위치 | 트리플스토어에 복사 | 원본 RDB에 유지 |
+| 쿼리 응답 시간 | 빠름 (인덱스 사용) | SQL 성능에 의존 |
+| 데이터 신선도 | ETL 주기에 의존 | 실시간 |
+| 추론 | 트리플스토어 추론기 사용 | OWL 2 QL 재작성 |
+| 스토리지 비용 | 트리플 저장 공간 필요 | 추가 스토리지 불필요 |
+| 복잡 SPARQL | 완전 지원 | 일부 제한 |
+| 적합 사례 | 배치 분석, 복잡 추론 | 레거시 통합, 실시간 |
+
+## 선택 가이드
+
+- **배치 ETL 파이프라인**: Morph-KGC + RML. 다양한 소스(CSV, JSON, DB)를 통합할 때.
+- **레거시 RDB 가상화**: Ontop. 데이터를 이동하지 않고 SPARQL 엔드포인트를 노출할 때.
+- **R2RML 표준 준수**: R2RML 구현체(RMLMapper 등)를 사용할 때. W3C 표준 호환성이 중요할 때.
+- **복합 파이프라인**: 대규모 조직에서는 가상화로 탐색하고, 자주 쓰이는 데이터 부분만 물질화하는 하이브리드 전략이 실용적이다.

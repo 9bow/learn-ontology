@@ -1,0 +1,218 @@
+---
+title: "6-1. Foundry Ontology의 3대 축: Objects, Links, Actions"
+description: "Palantir Foundry Ontology의 핵심 개념인 Object Types, Link Types, Action Types의 역할과 상호관계를 학습합니다."
+sidebar:
+  order: 61
+learning_objectives:
+  - "Palantir Foundry Ontology의 세 가지 핵심 구성요소를 설명한다"
+  - "Object Type이 전통적 RDF 클래스·LPG 노드와 어떻게 다른지 비교한다"
+  - "Link Type으로 Object 간 관계를 모델링하는 방법을 이해한다"
+  - "Action Type이 읽기 전용 온톨로지에서 쓰기 가능한 운영 레이어로 전환하는 원리를 파악한다"
+prerequisites:
+  - "온톨로지의 기본 개념(클래스, 속성, 인스턴스)"
+  - "LPG(레이블 속성 그래프) 모델 개념"
+estimated_minutes: 30
+references:
+  - title: "Palantir. Foundry Ontology Documentation (2024)"
+    url: "https://www.palantir.com/docs/foundry/ontology/overview/"
+  - title: "Palantir. AIPCon — Ontology as the Operating System for Enterprise AI (2023)"
+    url: "https://www.palantir.com/aipcon/"
+  - title: "Palantir Technologies. Form 10-K Annual Report. SEC EDGAR (2024)"
+    url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001321655"
+---
+
+## Palantir Foundry Ontology란
+
+Palantir Foundry는 데이터 통합·분석·운영 플랫폼입니다. 그 중심에는 **Ontology** 가 있습니다. Palantir는 자사의 온톨로지를 "기업 운영의 의미론적 레이어(semantic layer)"로 정의합니다.
+
+전통적 데이터 웨어하우스는 테이블과 열로 데이터를 표현합니다. Foundry Ontology는 그 위에 비즈니스 개념과 관계를 명시적으로 정의하는 레이어를 추가합니다. 엔지니어가 아닌 운영 담당자도 "항공기"·"공급업체"·"작업 지시서" 같은 비즈니스 언어로 데이터에 접근할 수 있게 됩니다.
+
+Foundry Ontology는 세 가지 핵심 구성요소로 이루어집니다.
+
+```
+Foundry Ontology
+├── Object Types    (무엇이 존재하는가)
+├── Link Types      (어떻게 연결되는가)
+└── Action Types    (무엇을 할 수 있는가)
+```
+
+---
+
+## Object Types: 비즈니스 엔티티의 정의
+
+### 개념
+
+Object Type은 비즈니스 도메인의 핵심 엔티티를 정의합니다. OWL의 클래스, LPG의 노드 레이블에 대응하는 개념이지만, Foundry에서는 **데이터소스 연결** 이 함께 정의됩니다.
+
+각 Object Type은 다음을 포함합니다.
+
+- **식별자(Primary Key)**: 인스턴스를 고유하게 식별하는 속성
+- **속성(Properties)**: 인스턴스가 가지는 데이터 필드
+- **데이터소스 연결**: 이 Object Type의 데이터를 공급하는 Foundry 데이터셋
+- **가시성 설정**: 어떤 팀이 어떤 속성에 접근할 수 있는지
+
+### 예시: 항공사 도메인
+
+```
+Object Type: Aircraft
+├── primaryKey: aircraft_id
+├── properties:
+│   ├── tail_number (string)
+│   ├── aircraft_type (string)
+│   ├── manufacture_date (date)
+│   ├── current_status (enum: Active, Maintenance, Retired)
+│   └── total_flight_hours (float)
+└── dataSource: /datasets/aircraft_registry
+```
+
+```
+Object Type: MaintenanceTask
+├── primaryKey: task_id
+├── properties:
+│   ├── task_type (string)
+│   ├── scheduled_date (date)
+│   ├── priority (enum: Critical, High, Medium, Low)
+│   ├── assigned_technician (string)
+│   └── estimated_hours (float)
+└── dataSource: /datasets/maintenance_schedule
+```
+
+### 전통적 온톨로지와의 차이
+
+| 항목 | 전통적 OWL 클래스 | Foundry Object Type |
+|---|---|---|
+| 정의 방식 | 공리 기반 | 속성 스키마 + 데이터소스 |
+| 인스턴스 소스 | 직접 선언 또는 추론 | 연결된 데이터셋에서 자동 생성 |
+| 스키마 엄격성 | OWA (유연) | CWA (명시된 속성만) |
+| 접근 제어 | 별도 시스템 | Object Type 레벨에서 내장 |
+| 규모 | 수십~수백만 인스턴스 | 수억 인스턴스까지 운영 검증 |
+
+---
+
+## Link Types: 엔티티 간 관계 정의
+
+### 개념
+
+Link Type은 Object Type 간의 관계를 정의합니다. OWL의 Object Property, LPG의 엣지 레이블에 대응합니다. Foundry에서 Link Type은 단순한 관계 선언을 넘어 **조인 논리** 를 캡슐화합니다.
+
+각 Link Type은 다음을 포함합니다.
+
+- **소스 Object Type**: 관계의 출발점
+- **대상 Object Type**: 관계의 도착점
+- **카디널리티**: 일대일, 일대다, 다대다
+- **조인 키**: 두 데이터셋을 연결하는 필드
+- **방향성**: 단방향 또는 양방향
+
+### 예시: 항공사 도메인 Link Types
+
+```
+Link Type: Aircraft --[isAssignedTo]--> MaintenanceTask
+├── cardinality: one-to-many
+├── joinKey: aircraft_id
+└── description: "항공기에 할당된 정비 작업"
+
+Link Type: MaintenanceTask --[requires]--> Part
+├── cardinality: many-to-many
+├── joinKey: task_id ↔ part_requirement.task_id
+└── description: "정비 작업에 필요한 부품"
+
+Link Type: Aircraft --[operatedBy]--> Airline
+├── cardinality: many-to-one
+├── joinKey: airline_code
+└── description: "항공기를 운영하는 항공사"
+```
+
+### 역방향 링크
+
+Foundry는 Link Type을 정의하면 자동으로 역방향 탐색을 지원합니다. `Aircraft → MaintenanceTask` 링크를 정의하면, `MaintenanceTask → Aircraft` 역방향 탐색도 가능합니다. 별도의 역방향 Link Type을 정의할 필요가 없습니다.
+
+---
+
+## Action Types: 온톨로지를 쓰기 가능하게
+
+### 개념
+
+Object Type과 Link Type은 **읽기** 레이어입니다. Action Type은 온톨로지를 통해 실제 세계를 **변경** 하는 기능을 정의합니다.
+
+Action Type은 다음을 정의합니다.
+
+- **입력 파라미터**: 사용자가 제공해야 하는 값
+- **검증 규칙**: 실행 전 충족해야 하는 조건
+- **효과(Effect)**: Object나 Link에 가하는 변경 내용
+- **권한**: 누가 이 Action을 실행할 수 있는지
+
+### 예시: 정비 일정 변경 Action
+
+```
+Action Type: RescheduleMaintenanceTask
+├── parameters:
+│   ├── task: MaintenanceTask (Object 선택)
+│   ├── newScheduledDate: date
+│   └── reason: string
+├── validations:
+│   ├── newScheduledDate가 오늘 이후여야 함
+│   ├── task의 현재 status가 "Scheduled"여야 함
+│   └── reason이 비어 있지 않아야 함
+├── effects:
+│   ├── task.scheduled_date = newScheduledDate
+│   ├── task.status = "Rescheduled"
+│   └── task.reschedule_reason = reason
+└── permissions: MaintenanceManager 역할 이상
+```
+
+### Action Type의 의미
+
+Action Type은 단순한 데이터베이스 업데이트가 아닙니다. 비즈니스 규칙, 검증 로직, 권한 제어가 온톨로지 레벨에서 중앙화됩니다. 같은 Action을 Workshop 대시보드, AIP 에이전트, 외부 API를 통해 실행하더라도 동일한 검증과 효과가 보장됩니다.
+
+이것이 Palantir가 "Ontology as the operating system"이라고 표현하는 핵심입니다.
+
+---
+
+## 세 구성요소의 상호작용
+
+실제 운영 시나리오에서 세 요소가 어떻게 협력하는지 봅니다.
+
+**시나리오: 정비 필요 항공기 조회 및 일정 재배치**
+
+```
+1. 사용자가 Workshop에서 대시보드를 엽니다
+   └── Object Type(Aircraft) 인스턴스 목록 표시
+
+2. 특정 항공기를 클릭합니다
+   └── Link Type(isAssignedTo)으로 연결된
+       MaintenanceTask 목록 표시
+
+3. 지연된 정비 작업을 선택합니다
+   └── Action Type(RescheduleMaintenanceTask) 실행
+
+4. 날짜와 사유를 입력하고 확인합니다
+   └── 검증 통과 → Object 업데이트 → 감사 로그 기록
+```
+
+이 흐름에서 데이터베이스 쿼리, 비즈니스 규칙, 권한 제어가 온톨로지 레이어에서 처리됩니다. 개발자가 각 UI 화면마다 이 로직을 재구현할 필요가 없습니다.
+
+---
+
+## Foundry Ontology의 설계 원칙
+
+Palantir의 공식 문서에서 확인할 수 있는 설계 지침입니다.
+
+**1. 비즈니스 언어 우선**: Object Type 이름은 도메인 전문가가 이해하는 용어로 정합니다. 기술적 테이블 이름(예: `dim_aircraft_v2`)을 그대로 쓰지 않습니다.
+
+**2. 단일 진실 원천**: 동일한 개념을 여러 Object Type으로 분리하지 않습니다. 여러 데이터소스의 항공기 데이터는 하나의 `Aircraft` Object Type으로 통합합니다.
+
+**3. 최소 필수 속성**: 처음에는 필수 속성만 포함하고, 사용 패턴이 확인된 후 확장합니다. 모든 테이블 열을 속성으로 노출하지 않습니다.
+
+**4. 명시적 관계**: 조인 로직을 쿼리마다 반복 작성하는 대신, Link Type으로 한 번 정의하고 재사용합니다.
+
+---
+
+## 정리
+
+Foundry Ontology의 3대 축은 기업 데이터를 비즈니스 의미 레이어로 추상화합니다.
+
+- **Object Types** 는 비즈니스 엔티티를 데이터소스와 연결해 정의합니다
+- **Link Types** 는 엔티티 간 관계와 조인 논리를 캡슐화합니다
+- **Action Types** 는 검증·권한·효과가 중앙화된 쓰기 인터페이스를 제공합니다
+
+다음 챕터에서는 이 세 요소의 메타모델을 더 깊이 분석하고, Object Type·Link Type·Action Type의 고급 설계 패턴을 살펴봅니다.

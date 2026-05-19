@@ -1,0 +1,212 @@
+---
+title: "RDF 트리플: Subject-Predicate-Object"
+description: "링크드 데이터의 기반인 RDF(Resource Description Framework)의 트리플 모델을 학습합니다. URI, 리터럴, 블랭크 노드와 Turtle 문법을 익힙니다."
+sidebar:
+  order: 1
+learning_objectives:
+  - RDF 트리플의 세 구성요소(Subject, Predicate, Object)를 설명할 수 있다
+  - URI, 리터럴, 블랭크 노드의 차이와 용도를 구분한다
+  - Turtle 문법으로 기본 RDF 그래프를 작성할 수 있다
+prerequisites:
+  - "1-3-vs-taxonomy-kg-erd"
+estimated_minutes: 30
+references:
+  - title: "W3C RDF 1.1 Concepts and Abstract Syntax"
+    url: "https://www.w3.org/TR/rdf11-concepts/"
+  - title: "W3C RDF 1.1 Turtle"
+    url: "https://www.w3.org/TR/turtle/"
+  - title: "W3C RDF 1.1 Primer"
+    url: "https://www.w3.org/TR/rdf11-primer/"
+  - title: "Berners-Lee, T., Hendler, J. & Lassila, O. (2001). The Semantic Web. Scientific American"
+    url: "https://www.scientificamerican.com/article/the-semantic-web/"
+---
+
+## 세계를 트리플로 표현하다
+
+RDF(Resource Description Framework)는 W3C가 1999년 제안하고 2004년·2014년 개정한 표준입니다. RDF의 핵심 아이디어는 단순합니다. 세상의 모든 사실을 **트리플(triple)** — 주어-술어-목적어의 세 항 — 으로 표현할 수 있다는 것입니다.
+
+영어 문장 "김철수는 서울대학교에서 일한다"를 트리플로 쪼갑니다.
+
+```
+Subject(주어)   Predicate(술어)    Object(목적어)
+:김철수         :worksAt           :서울대학교
+```
+
+이것이 RDF의 전부입니다. 복잡한 사실도 여러 트리플의 조합으로 표현합니다. RDF 그래프는 이 트리플들의 집합입니다.
+
+---
+
+## 세 가지 노드 타입
+
+RDF 트리플의 구성요소는 세 가지 타입 중 하나여야 합니다.
+
+### 1. IRI (Internationalized Resource Identifier)
+
+IRI는 자원(resource)을 전 세계적으로 유일하게 식별하는 주소입니다. HTTP URI가 가장 일반적입니다.
+
+```
+http://example.org/person/KimCheolsu
+http://www.w3.org/1999/02/22-rdf-syntax-ns#type
+https://schema.org/Person
+```
+
+IRI는 Subject, Predicate, Object 모두에 사용할 수 있습니다. Predicate는 반드시 IRI여야 합니다.
+
+### 2. 리터럴 (Literal)
+
+리터럴은 문자열, 숫자, 날짜 같은 **데이터 값**입니다. Object 위치에만 올 수 있습니다.
+
+```turtle
+# 타입 있는 리터럴
+"김철수"^^xsd:string
+"1975-03-15"^^xsd:date
+"180.5"^^xsd:decimal
+42^^xsd:integer
+true^^xsd:boolean
+
+# 언어 태그 있는 리터럴
+"아스피린"@ko
+"Aspirin"@en
+"阿司匹林"@zh
+```
+
+### 3. 블랭크 노드 (Blank Node)
+
+블랭크 노드는 IRI 없이 익명으로 개체를 표현합니다. 온톨로지 내부 구조(Restriction, 목록 등)에 주로 사용됩니다. 트리플 파일 외부에서 참조할 수 없습니다.
+
+```turtle
+# 블랭크 노드 예시: 이름 없는 구조
+:김철수 :hasAddress [
+    :street "관악로 1" ;
+    :city "서울"
+] .
+# 대괄호 안이 블랭크 노드
+```
+
+---
+
+## Turtle 문법 완전 가이드
+
+**Turtle(Terse RDF Triple Language)** 은 RDF를 사람이 읽기 쉽게 표현하는 직렬화 형식입니다. W3C 표준(2014)입니다.
+
+### 기본 구조
+
+```turtle
+# 네임스페이스 접두사 선언
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix :     <http://example.org/> .
+
+# 기본 트리플 (마침표로 종료)
+:김철수 rdf:type :Person .
+```
+
+### 세미콜론: 같은 주어, 다른 술어-목적어
+
+```turtle
+:김철수 rdf:type :Person ;
+        :hasName "김철수"^^xsd:string ;
+        :birthDate "1975-03-15"^^xsd:date ;
+        :worksAt :서울대학교 .
+# 마지막 트리플만 마침표, 나머지는 세미콜론
+```
+
+### 쉼표: 같은 주어, 같은 술어, 다른 목적어
+
+```turtle
+:김철수 :speaksLanguage :Korean , :English , :Japanese .
+# 세 개의 트리플: :김철수 :speaksLanguage :Korean
+#                :김철수 :speaksLanguage :English
+#                :김철수 :speaksLanguage :Japanese
+```
+
+### a — rdf:type 단축형
+
+```turtle
+# 이 두 표현은 동일
+:김철수 rdf:type :Person .
+:김철수 a :Person .
+```
+
+---
+
+## RDF 직렬화 형식 비교
+
+RDF는 하나의 추상 모델이고, 여러 직렬화 형식으로 표현할 수 있습니다.
+
+| 형식 | 확장자 | 특징 | 사용 상황 |
+|------|--------|------|---------|
+| **Turtle** | .ttl | 사람이 읽기 쉬움 | 온톨로지 편집, 버전 관리 |
+| **N-Triples** | .nt | 한 줄 = 한 트리플, 처리 쉬움 | 대용량 데이터 파이프라인 |
+| **JSON-LD** | .jsonld | JSON 호환, 웹 친화적 | API 응답, schema.org |
+| **RDF/XML** | .rdf, .owl | OWL 기본 형식, 장황함 | 레거시 시스템, OWL 파일 |
+| **N-Quads** | .nq | Named Graph 포함 | 여러 그래프 직렬화 |
+| **TriG** | .trig | Turtle + Named Graph | Named Graph 편집 |
+
+같은 사실을 세 형식으로 비교합니다.
+
+```turtle
+# Turtle
+@prefix : <http://example.org/> .
+:김철수 a :Person ; :worksAt :서울대학교 .
+```
+
+```
+# N-Triples (완전한 IRI 사용)
+<http://example.org/김철수> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example.org/Person> .
+<http://example.org/김철수> <http://example.org/worksAt> <http://example.org/서울대학교> .
+```
+
+```json
+// JSON-LD
+{
+  "@context": {
+    "@base": "http://example.org/",
+    "worksAt": {"@id": "http://example.org/worksAt", "@type": "@id"}
+  },
+  "@id": "김철수",
+  "@type": "Person",
+  "worksAt": "서울대학교"
+}
+```
+
+---
+
+## RDF 그래프의 시각화
+
+트리플의 집합은 **방향 그래프(directed graph)** 로 시각화됩니다. 노드는 Subject와 Object, 엣지는 Predicate입니다.
+
+```
+[김철수] ──rdf:type──▶ [Person]
+    │
+    ├─hasName──▶ "김철수"
+    ├─birthDate─▶ "1975-03-15"
+    └─worksAt───▶ [서울대학교]
+                       │
+                       └─rdf:type──▶ [University]
+```
+
+이 그래프 구조 덕분에 RDF는 관계형 데이터베이스보다 **연결된 데이터(linked data)** 를 표현하기 자연스럽습니다. 테이블 조인 없이 그래프 탐색으로 연관 정보를 추적합니다.
+
+---
+
+## 링크드 데이터 원칙
+
+팀 버너스-리는 2006년 링크드 데이터의 네 가지 원칙을 제안했습니다.
+
+1. **사물을 나타내는 이름으로 URI를 사용하라**
+2. **HTTP URI를 사용해 URI를 역참조할 수 있게 하라**
+3. **URI를 역참조할 때 표준(RDF, SPARQL)으로 유용한 정보를 제공하라**
+4. **다른 URI로 링크를 포함해 더 많은 것을 발견할 수 있게 하라**
+
+이 원칙에 따라 Wikidata, DBpedia, Schema.org 등이 구축됐고, 이들은 `owl:sameAs`로 서로 연결됩니다.
+
+```turtle
+# Wikidata와 DBpedia가 같은 실체를 가리킴
+<http://www.wikidata.org/entity/Q215627>
+    owl:sameAs <http://dbpedia.org/resource/Person> .
+```
+
+다음 챕터에서는 RDF에 스키마(클래스·속성 계층)를 추가하는 RDFS(RDF Schema)를 학습합니다.

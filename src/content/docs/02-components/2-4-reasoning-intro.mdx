@@ -1,0 +1,224 @@
+---
+title: "Subsumption, Classification, Consistency"
+description: "OWL 추론 엔진이 수행하는 세 가지 핵심 추론 유형을 이해하고, 실제 온톨로지에서 어떻게 활용되는지 학습합니다."
+sidebar:
+  order: 4
+learning_objectives:
+  - Subsumption, Classification, Consistency 추론의 의미와 차이를 설명할 수 있다
+  - 추론 엔진(HermiT, Pellet, RDFox)의 역할과 선택 기준을 이해한다
+  - 기술 논리(Description Logic)와 OWL 표현력의 관계를 개략적으로 설명한다
+prerequisites:
+  - "2-3-owa-vs-cwa"
+estimated_minutes: 35
+references:
+  - title: "W3C OWL 2 Web Ontology Language Primer — Reasoning section"
+    url: "https://www.w3.org/TR/owl2-primer/#Reasoning"
+  - title: "Baader, F. et al. (eds.) (2003). The Description Logic Handbook. Cambridge University Press"
+    url: "https://www.cambridge.org/9780521781763"
+  - title: "Shearer, R., Motik, B. & Horrocks, I. (2008). HermiT: A Highly-Efficient OWL Reasoner. OWLED"
+    url: "https://www.cs.ox.ac.uk/ian.horrocks/Publications/download/2008/SheMotHor08a.pdf"
+  - title: "Sirin, E. et al. (2007). Pellet: A Practical OWL-DL Reasoner. Web Semantics"
+    url: "https://www.sciencedirect.com/science/article/pii/S1570826807000169"
+---
+
+## 추론이란 무엇인가
+
+앞 챕터들에서 클래스, 속성, 공리, Restriction을 배웠습니다. 이 지식들을 명시적으로 입력하지 않아도 새로운 결론을 도출하는 것 — 이것이 **추론(reasoning)** 입니다. 추론은 온톨로지를 단순한 분류 구조와 구별하는 핵심 능력입니다.
+
+OWL 추론 엔진이 수행하는 추론은 여러 종류가 있지만, 가장 중요한 세 가지는 **Subsumption(포섭)**, **Classification(분류)**, **Consistency Checking(일관성 검사)** 입니다.
+
+---
+
+## 1. Subsumption (포섭 관계 추론)
+
+**Subsumption** 은 "클래스 A가 클래스 B의 부분집합인가?"를 판단하는 추론입니다. 이것은 클래스 계층을 자동으로 완성하는 데 사용됩니다.
+
+### 직접 포섭 vs 계산된 포섭
+
+명시적으로 선언한 `rdfs:subClassOf` 관계 외에, 공리의 논리적 함의로부터 **암묵적 포섭 관계**를 도출합니다.
+
+```turtle
+# 명시된 사실
+:Antibiotic rdfs:subClassOf :Drug .
+:Penicillin rdfs:subClassOf :Antibiotic .
+
+# 추론 결과 (명시 안 했지만 자동 도출)
+# :Penicillin rdfs:subClassOf :Drug  (추이성)
+```
+
+더 복잡한 예시입니다.
+
+```turtle
+# 정의: 소아과용 약물 = Drug이면서 적용 대상이 소아인 것
+:PediatricDrug owl:equivalentClass [
+    owl:intersectionOf (
+        :Drug
+        [ rdf:type owl:Restriction ;
+          owl:onProperty :applicableTo ;
+          owl:someValuesFrom :Child ]
+    )
+] .
+
+# 정의: 소아과용 항생제
+:PediatricAntibiotic owl:equivalentClass [
+    owl:intersectionOf ( :Antibiotic :PediatricDrug )
+] .
+
+# 추론 질문: PediatricAntibiotic이 Drug의 부분집합인가?
+# 추론 결과: YES
+# PediatricAntibiotic ⊆ Antibiotic ⊆ Drug (추이성)
+```
+
+추론 엔진은 이 계층을 자동으로 완성하고, Protégé 같은 도구에서는 **분류 계층(inferred hierarchy)** 탭에 결과를 보여줍니다.
+
+---
+
+## 2. Classification (자동 분류)
+
+**Classification** 은 "개체(individual) X가 어떤 클래스에 속하는가?"를 자동으로 판단하는 추론입니다. 개체를 클래스에 직접 할당하지 않아도, 개체의 속성과 관계를 분석해 적절한 클래스를 찾아냅니다.
+
+### 예시: 자동 분류가 작동하는 과정
+
+```turtle
+# TBox: 클래스 정의
+:Antibiotic owl:equivalentClass [
+    owl:intersectionOf (
+        :Drug
+        [ rdf:type owl:Restriction ;
+          owl:onProperty :targetsOrganism ;
+          owl:someValuesFrom :Bacterium ]
+    )
+] .
+
+# ABox: 개체 사실 (클래스를 직접 명시하지 않음)
+:Amoxicillin rdf:type :Drug ;
+             :targetsOrganism :EColi .
+
+:EColi rdf:type :Bacterium .
+```
+
+추론 엔진은 다음 과정을 거칩니다.
+
+1. `:Amoxicillin`은 `:Drug`다 (명시됨)
+2. `:Amoxicillin`은 `:Bacterium`인 `:EColi`를 타겟으로 한다 (명시됨)
+3. 따라서 `:Amoxicillin`은 `:Antibiotic`의 정의를 만족한다
+4. **결론: `:Amoxicillin rdf:type :Antibiotic` (자동 도출)**
+
+이것은 **Necessary and Sufficient Conditions(필요 충분 조건)** 기반 정의의 힘입니다. 의료 데이터베이스에 수천 개의 약물이 추가될 때, 각 약물을 항생제로 수동 분류하지 않아도 됩니다. 타겟 유기체 정보만 입력하면 추론 엔진이 자동 분류합니다.
+
+---
+
+## 3. Consistency Checking (일관성 검사)
+
+**Consistency Checking** 은 온톨로지 전체가 논리적으로 모순 없는지 검사합니다. 불일관성(inconsistency)이 발견되면 추론 엔진은 경고를 내고, 해당 온톨로지에서 어떤 추론도 신뢰할 수 없게 됩니다.
+
+### 불일관성 시나리오 1: DisjointWith 위반
+
+```turtle
+# TBox
+:Physician owl:disjointWith :Nurse .
+
+# ABox (오류 데이터)
+:김간호사 rdf:type :Physician , :Nurse .
+
+# 결과: 불일관성 감지
+# "김간호사는 Physician이면서 Nurse인데, 이 둘은 분리돼 있으므로 모순"
+```
+
+### 불일관성 시나리오 2: Restriction 위반
+
+```turtle
+# TBox
+:BloodTypeA owl:equivalentClass [
+    rdf:type owl:Restriction ;
+    owl:onProperty :hasBloodType ;
+    owl:hasValue :A
+] .
+
+:hasBloodType rdf:type owl:FunctionalProperty .
+
+# ABox (오류 데이터)
+:환자홍 :hasBloodType :A , :B .
+
+# 결과: FunctionalProperty 위반 → 불일관성
+# A와 B가 owl:sameAs여야 하는데, 리터럴/개체 충돌
+```
+
+### 불일관성 시나리오 3: SubClassOf 순환과 Disjoint
+
+```turtle
+:DrugA rdfs:subClassOf :CategoryX .
+:DrugB rdfs:subClassOf :CategoryY .
+:CategoryX owl:disjointWith :CategoryY .
+
+:SomeDrug rdfs:subClassOf :DrugA , :DrugB .
+# SomeDrug ⊆ DrugA ⊆ CategoryX
+# SomeDrug ⊆ DrugB ⊆ CategoryY
+# CategoryX disjointWith CategoryY → SomeDrug = owl:Nothing (공클래스)
+```
+
+이 경우 `:SomeDrug`는 아무 인스턴스도 가질 수 없는 클래스가 됩니다. 추론 엔진은 이를 경고합니다.
+
+---
+
+## 추론 엔진의 선택
+
+추론을 실행하려면 외부 추론 엔진이 필요합니다. OWL 2의 추론 복잡도는 프로파일에 따라 다릅니다.
+
+| 추론 엔진 | 지원 프로파일 | 특징 | 라이선스 |
+|---------|------------|------|---------|
+| **HermiT** | OWL 2 DL | Hypertableau 알고리즘, 완전성 보장 | LGPL |
+| **Pellet** | OWL 2 DL | 증분 추론, SWRL 지원 | AGPL/상용 |
+| **FaCT++** | OWL 2 DL | C++ 구현, 고성능 | LGPL |
+| **RDFox** | OWL 2 RL/EL | 대규모 데이터, 인메모리, 병렬 | 상용 |
+| **ELK** | OWL 2 EL | 초대형 생의학 온톨로지 특화 | Apache 2.0 |
+| **Stardog** | OWL 2 QL/RL | 엔터프라이즈 트리플 스토어 내장 | 상용 |
+
+**선택 기준:**
+
+- **정확성 최우선 (소규모)** — HermiT 또는 Pellet
+- **생의학 대규모 온톨로지** — ELK (SNOMED CT, Gene Ontology)
+- **엔터프라이즈 대규모** — RDFox 또는 Stardog
+- **교육/프로토타입** — Protégé에 내장된 HermiT
+
+---
+
+## 기술 논리(DL)와 추론 복잡도
+
+OWL의 이론적 기반인 **기술 논리(Description Logic)** 는 표현력과 추론 복잡도 사이의 트레이드오프를 형식화합니다.
+
+| DL 언어 | OWL 프로파일 | 추론 복잡도 | 주요 기능 |
+|--------|------------|-----------|---------|
+| **EL** | OWL 2 EL | P-time | 교집합, 존재 제한 |
+| **QL** | OWL 2 QL | NL | RDFS + 역속성 |
+| **RL** | OWL 2 RL | P-time | 규칙 기반 |
+| **ALCH** | OWL Lite | ExpTime | 계층 + 카디널리티 |
+| **SHOIN** | OWL DL | NExpTime | 명목 클래스, 열거 |
+| **SROIQ** | OWL 2 DL | N2ExpTime | 역속성, 전이적 역 |
+
+OWL 2 Full(OWL DL + 메타모델링)은 추론이 **결정 불가능(undecidable)** 합니다.
+
+---
+
+## 추론의 실제 활용 시나리오
+
+### 지식 기반 시스템 자동화
+
+약물 상호작용 데이터베이스에서, 새 약물이 추가될 때 기존 온톨로지 규칙으로 잠재적 상호작용을 자동 플래그합니다.
+
+### 데이터 통합 시 매핑 검증
+
+두 온톨로지를 통합할 때, 제안된 매핑(`:Customer owl:equivalentClass :Client`)이 불일관성을 일으키는지 추론 엔진이 사전에 검증합니다.
+
+### 접근 제어
+
+권한 온톨로지에서 역할 계층을 정의하면, 상위 역할의 권한이 하위 역할에 자동 전파됩니다.
+
+```turtle
+:AdminRole rdfs:subClassOf :EditorRole .
+:EditorRole rdfs:subClassOf :ViewerRole .
+
+# 추론: AdminRole은 ViewerRole의 모든 권한을 자동으로 갖는다
+```
+
+다음 챕터에서는 이런 추론 능력을 활용하는 온톨로지 계층 — Upper, Domain, Application — 을 살펴봅니다.

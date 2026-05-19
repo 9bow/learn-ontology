@@ -1,0 +1,182 @@
+[
+  {
+    "id": "q1",
+    "question": "RDF(Resource Description Framework)에서 지식을 표현하는 기본 단위는?",
+    "options": [
+      "테이블(Table)",
+      "트리플(Triple): 주어-서술어-목적어",
+      "노드(Node)와 엣지(Edge)",
+      "클래스(Class)와 속성(Property)"
+    ],
+    "answer": 1,
+    "explanation": "RDF는 모든 지식을 주어(Subject)-서술어(Predicate)-목적어(Object)의 트리플로 표현합니다. 예: `<홍길동> <worksAt> <ETRI>`."
+  },
+  {
+    "id": "q2",
+    "question": "RDFS(RDF Schema)가 RDF에 추가하는 핵심 기능은?",
+    "options": [
+      "SPARQL 쿼리 지원",
+      "클래스 계층(`rdfs:subClassOf`)과 속성 계층(`rdfs:subPropertyOf`) 정의",
+      "OWL 2 프로파일 지원",
+      "SHACL 제약 검증"
+    ],
+    "answer": 1,
+    "explanation": "RDFS는 RDF 위에 `rdfs:subClassOf`, `rdfs:subPropertyOf`, `rdfs:domain`, `rdfs:range` 같은 어휘를 추가하여 간단한 클래스·속성 계층을 정의할 수 있게 합니다."
+  },
+  {
+    "id": "q3",
+    "question": "OWL 2 프로파일 중 표현력은 낮지만 추론 복잡도가 가장 낮아 대규모 데이터에 적합한 것은?",
+    "options": [
+      "OWL 2 Full",
+      "OWL 2 DL",
+      "OWL 2 EL",
+      "OWL 2 QL"
+    ],
+    "answer": 2,
+    "explanation": "OWL 2 EL은 다항 시간(polynomial time) 추론을 보장하며, SNOMED CT 같은 대규모 의료 온톨로지에 적합합니다. OWL 2 QL은 데이터베이스 쿼리 재작성에, OWL 2 RL은 룰 기반 추론에 최적화됩니다."
+  },
+  {
+    "id": "q4",
+    "question": "SHACL(Shapes Constraint Language)의 주된 용도는?",
+    "options": [
+      "RDF 데이터를 OWL로 변환",
+      "RDF 그래프의 데이터 유효성 검사 및 제약 조건 명시",
+      "SPARQL 쿼리 최적화",
+      "온톨로지 간 매핑 자동화"
+    ],
+    "answer": 1,
+    "explanation": "SHACL은 RDF 그래프가 특정 형태(shape)를 따르는지 검증합니다. 예를 들어 '모든 Person은 반드시 이름을 가져야 한다'는 제약을 정의하고 데이터를 검사합니다."
+  },
+  {
+    "id": "q5",
+    "question": "SKOS(Simple Knowledge Organization System)가 주로 사용되는 용도는?",
+    "options": [
+      "복잡한 클래스 공리와 추론 정의",
+      "시소러스·분류체계·통제어휘 등 지식 조직 체계 표현",
+      "SPARQL 페더레이션 쿼리",
+      "RDF 트리플 직렬화 형식 지정"
+    ],
+    "answer": 1,
+    "explanation": "SKOS는 `skos:Concept`, `skos:broader`, `skos:narrower`, `skos:related` 같은 어휘로 시소러스·분류체계를 RDF로 표현합니다. OWL보다 단순하지만 추론 기능은 제한적입니다."
+  },
+  {
+    "id": "q6",
+    "question": "RDF-star(RDF*)가 기존 RDF에서 해결하려는 문제는?",
+    "options": [
+      "트리플 스토어의 저장 용량 한계",
+      "트리플 자체를 다른 트리플의 주어나 목적어로 사용하는 메타데이터 표현",
+      "SPARQL 쿼리의 실행 속도",
+      "OWL 추론기의 완전성 보장"
+    ],
+    "answer": 1,
+    "explanation": "RDF-star는 트리플 자체를 또 다른 트리플의 주어나 목적어로 사용할 수 있게 합니다. 예: `<<:Alice :knows :Bob>> :since 2020`처럼 관계에 대한 메타데이터를 표현할 수 있습니다."
+  },
+  {
+    "id": "q7",
+    "question": "OWL 2 QL 프로파일이 특히 최적화된 사용 사례는?",
+    "options": [
+      "대규모 의료 온톨로지 분류",
+      "관계형 데이터베이스 위에 온톨로지 기반 쿼리 재작성",
+      "룰 기반 추론 엔진",
+      "실시간 스트리밍 데이터 처리"
+    ],
+    "answer": 1,
+    "explanation": "OWL 2 QL은 쿼리 재작성(query rewriting)에 최적화되어, 관계형 데이터베이스에 저장된 데이터 위에 온톨로지 기반 쿼리를 효율적으로 실행할 수 있습니다."
+  },
+  {
+    "id": "q8",
+    "question": "RDF에서 `rdf:type`의 역할은?",
+    "options": [
+      "두 리소스가 동일함을 선언",
+      "개체(Individual)가 특정 클래스의 인스턴스임을 나타냄",
+      "속성의 치역(range)을 정의",
+      "리소스 간 계층 관계를 정의"
+    ],
+    "answer": 1,
+    "explanation": "`rdf:type`은 어떤 리소스가 특정 클래스의 인스턴스임을 선언합니다. 예: `:홍길동 rdf:type :Person`. Turtle 구문에서는 `a`로 축약합니다."
+  },
+  {
+    "id": "q9",
+    "question": "`rdfs:domain`과 `rdfs:range`의 차이는?",
+    "options": [
+      "`rdfs:domain`은 속성의 치역, `rdfs:range`는 정의역을 지정한다",
+      "`rdfs:domain`은 속성의 주어 클래스, `rdfs:range`는 목적어 클래스를 지정한다",
+      "둘 다 속성의 허용 값 유형을 제한한다",
+      "둘 다 클래스 계층 관계를 정의한다"
+    ],
+    "answer": 1,
+    "explanation": "`rdfs:domain`은 속성의 주어(정의역)가 어떤 클래스인지, `rdfs:range`는 목적어(치역)가 어떤 클래스/데이터타입인지 지정합니다. 예: `worksAt rdfs:domain :Person; rdfs:range :Organization`."
+  },
+  {
+    "id": "q10",
+    "question": "OWL 2 Full과 OWL 2 DL의 가장 큰 차이점은?",
+    "options": [
+      "OWL 2 Full은 추론이 불가능하고 OWL 2 DL은 추론이 가능하다",
+      "OWL 2 Full은 결정 가능성(decidability)을 보장하지 않지만 OWL 2 DL은 보장한다",
+      "OWL 2 Full은 RDF를 사용하지 않는다",
+      "OWL 2 DL은 클래스 선언이 필요 없다"
+    ],
+    "answer": 1,
+    "explanation": "OWL 2 DL은 기술 논리(Description Logic)에 기반하여 추론의 결정 가능성(decidability)과 완전성을 보장합니다. OWL 2 Full은 RDF와 완전히 호환되지만 추론 결정 가능성을 보장하지 않습니다."
+  },
+  {
+    "id": "q11",
+    "question": "SKOS에서 `skos:broader`와 `skos:narrower`의 관계는?",
+    "options": [
+      "두 개념이 동의어임을 나타낸다",
+      "`skos:broader`는 상위 개념, `skos:narrower`는 하위 개념을 가리키며 역관계이다",
+      "두 개념이 관련은 있지만 계층 관계는 없음을 나타낸다",
+      "두 관계는 독립적이며 역관계가 아니다"
+    ],
+    "answer": 1,
+    "explanation": "`skos:broader`는 더 넓은 상위 개념으로, `skos:narrower`는 더 좁은 하위 개념으로 연결합니다. 이 둘은 역관계입니다. `skos:related`는 계층 관계 없는 연관 개념에 사용됩니다."
+  },
+  {
+    "id": "q12",
+    "question": "RDF 직렬화 형식 중 사람이 읽고 쓰기 가장 편리한 것으로 알려진 형식은?",
+    "options": [
+      "RDF/XML",
+      "N-Triples",
+      "Turtle(TTL)",
+      "JSON-LD"
+    ],
+    "answer": 2,
+    "explanation": "Turtle(Terse RDF Triple Language)은 접두사(prefix) 선언과 간결한 문법으로 사람이 읽고 쓰기 편리합니다. RDF/XML은 장황하고 N-Triples는 간결하지만 반복적입니다."
+  },
+  {
+    "id": "q13",
+    "question": "JSON-LD가 다른 RDF 직렬화 형식에 비해 갖는 장점은?",
+    "options": [
+      "가장 빠른 파싱 속도",
+      "기존 JSON 기반 웹 API와 자연스럽게 통합 가능",
+      "가장 높은 표현력",
+      "OWL 2 Full과 완전 호환"
+    ],
+    "answer": 1,
+    "explanation": "JSON-LD는 기존 JSON 구조에 `@context`를 추가하여 시맨틱을 부여합니다. 웹 개발자에게 친숙한 JSON 형식이므로 기존 REST API와 통합이 용이합니다."
+  },
+  {
+    "id": "q14",
+    "question": "OWL 2 EL이 SNOMED CT 같은 대규모 의료 온톨로지에 적합한 이유는?",
+    "options": [
+      "완전한 1차 논리를 지원하기 때문에",
+      "다항 시간(polynomial time) 내 추론이 보장되기 때문에",
+      "SQL과 완전히 호환되기 때문에",
+      "SHACL 제약 검증을 내장하기 때문에"
+    ],
+    "answer": 1,
+    "explanation": "OWL 2 EL은 ExistentialRestriction(존재 제약)에 특화되어 다항 시간 내 추론을 보장합니다. SNOMED CT처럼 수십만 개 개념이 있는 대규모 온톨로지에서도 실용적 추론이 가능합니다."
+  },
+  {
+    "id": "q15",
+    "question": "SHACL과 OWL의 차이점을 가장 잘 설명한 것은?",
+    "options": [
+      "SHACL은 추론 중심, OWL은 검증 중심이다",
+      "SHACL은 데이터 검증(validation) 중심, OWL은 지식 추론(reasoning) 중심이다",
+      "SHACL은 클래스 계층 정의에 사용되고, OWL은 속성 정의에 사용된다",
+      "SHACL과 OWL은 동일한 목적으로 사용된다"
+    ],
+    "answer": 1,
+    "explanation": "OWL은 공리를 통해 새로운 사실을 추론하는 데 강점이 있고, SHACL은 RDF 데이터가 정해진 형태(shape)를 따르는지 검증하는 데 특화되어 있습니다. 두 접근법은 상호보완적입니다."
+  }
+]

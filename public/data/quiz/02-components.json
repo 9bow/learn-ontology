@@ -1,0 +1,182 @@
+[
+  {
+    "id": "q1",
+    "question": "OWL 온톨로지에서 `Class`의 정의로 가장 적절한 것은?",
+    "options": [
+      "개체(Individual)의 구체적 인스턴스",
+      "도메인 내 개념의 집합",
+      "두 개체 간의 관계를 나타내는 링크",
+      "클래스에 대한 제약 규칙"
+    ],
+    "answer": 1,
+    "explanation": "Class는 도메인 내 개념의 집합입니다. 예: `Person`, `Drug`. 개체(Individual)는 클래스의 인스턴스이고, 링크는 Property, 제약은 Axiom에 해당합니다."
+  },
+  {
+    "id": "q2",
+    "question": "OWL에서 Object Property와 Data Property의 차이점은?",
+    "options": [
+      "Object Property는 개체와 리터럴을 연결하고, Data Property는 개체와 개체를 연결한다",
+      "Object Property는 개체와 개체를 연결하고, Data Property는 개체와 리터럴 값을 연결한다",
+      "Object Property는 클래스 간 관계이고, Data Property는 클래스 내부 순서이다",
+      "Object Property와 Data Property는 동일하며 표기법만 다르다"
+    ],
+    "answer": 1,
+    "explanation": "Object Property는 개체(Individual)와 개체를 연결하는 관계(예: `worksAt`)이고, Data Property는 개체와 리터럴 값(문자열, 숫자 등)을 연결합니다(예: `hasAge 30`)."
+  },
+  {
+    "id": "q3",
+    "question": "개방 세계 가정(OWA, Open World Assumption)에 대한 설명으로 올바른 것은?",
+    "options": [
+      "명시적으로 참이라고 기술되지 않은 것은 거짓이다",
+      "명시적으로 거짓이라고 기술된 것만 거짓이다",
+      "알려지지 않은 사실은 참도 거짓도 아닐 수 있다",
+      "모든 사실은 데이터베이스에 저장되어 있다"
+    ],
+    "answer": 2,
+    "explanation": "OWA는 명시되지 않은 사실을 '알 수 없음(unknown)'으로 처리합니다. 반면 관계형 데이터베이스의 CWA(폐쇄 세계 가정)는 명시되지 않은 것을 거짓으로 간주합니다."
+  },
+  {
+    "id": "q4",
+    "question": "폐쇄 세계 가정(CWA, Closed World Assumption)을 주로 사용하는 시스템은?",
+    "options": [
+      "OWL 온톨로지 추론기",
+      "관계형 데이터베이스",
+      "RDF 트리플 스토어",
+      "SKOS 시소러스"
+    ],
+    "answer": 1,
+    "explanation": "관계형 데이터베이스는 CWA를 사용합니다. 데이터베이스에 없는 사실은 존재하지 않는 것으로 간주합니다. OWL/RDF 기반 온톨로지는 OWA를 사용합니다."
+  },
+  {
+    "id": "q5",
+    "question": "온톨로지 추론(Reasoning)이 수행할 수 있는 작업이 아닌 것은?",
+    "options": [
+      "클래스 계층 구조의 일관성 검사",
+      "명시적으로 기술되지 않은 클래스 멤버십 유추",
+      "새로운 도메인 개념의 자동 발견",
+      "두 온톨로지 간 개념 동치(equivalence) 감지"
+    ],
+    "answer": 2,
+    "explanation": "추론기는 기존 공리에서 새로운 사실을 유도하지만, 온톨로지에 없는 완전히 새로운 도메인 개념을 창출하지는 않습니다. 일관성 검사, 멤버십 유추, 동치 감지는 추론기의 전형적 기능입니다."
+  },
+  {
+    "id": "q6",
+    "question": "`rdfs:subClassOf`를 사용하여 `Dog rdfs:subClassOf Animal`을 정의했을 때, 추론기가 유추할 수 있는 것은?",
+    "options": [
+      "모든 Animal은 Dog이다",
+      "Dog와 Animal은 동치(equivalent)이다",
+      "모든 Dog 개체는 Animal 개체이기도 하다",
+      "Dog는 Animal의 속성을 가질 수 없다"
+    ],
+    "answer": 2,
+    "explanation": "`rdfs:subClassOf`는 포함 관계를 나타냅니다. Dog가 Animal의 서브클래스이면, 모든 Dog 인스턴스는 Animal 인스턴스이기도 합니다. 역방향(모든 Animal은 Dog)은 성립하지 않습니다."
+  },
+  {
+    "id": "q7",
+    "question": "상위 온톨로지(Upper Ontology)의 역할로 가장 적절한 것은?",
+    "options": [
+      "특정 도메인의 세부 개념을 최대한 상세히 기술",
+      "여러 도메인 온톨로지 간 상호운용성을 위한 공통 최상위 개념 제공",
+      "데이터베이스 스키마를 OWL로 변환",
+      "SPARQL 쿼리 최적화"
+    ],
+    "answer": 1,
+    "explanation": "상위 온톨로지(예: BFO, DOLCE, SUMO)는 Object, Process, Quality 같은 도메인 독립적 최상위 개념을 제공하여 여러 도메인 온톨로지 간 공통 기반과 상호운용성을 지원합니다."
+  },
+  {
+    "id": "q8",
+    "question": "OWL에서 `owl:disjointWith`를 사용하는 이유는?",
+    "options": [
+      "두 클래스가 동일함을 선언하기 위해",
+      "두 클래스의 인스턴스가 겹치지 않음을 명시하기 위해",
+      "두 클래스를 병합하기 위해",
+      "클래스 상속 관계를 정의하기 위해"
+    ],
+    "answer": 1,
+    "explanation": "`owl:disjointWith`는 두 클래스가 서로소(disjoint)임을 선언합니다. 예: `Cat owl:disjointWith Dog`이면 어떤 개체도 동시에 Cat이면서 Dog일 수 없습니다."
+  },
+  {
+    "id": "q9",
+    "question": "Property의 특성 중 `owl:TransitiveProperty`를 정의했을 때의 효과는?",
+    "options": [
+      "A→B, B→C이면 A→C가 자동으로 유추된다",
+      "A→B이면 B→A도 자동으로 유추된다",
+      "A→B인 관계가 오직 하나만 존재한다",
+      "A와 B가 동일한 개체임을 나타낸다"
+    ],
+    "answer": 0,
+    "explanation": "`owl:TransitiveProperty`는 추이성을 정의합니다. `isPartOf`가 추이적이면 A가 B의 부분이고 B가 C의 부분이면 A도 C의 부분임이 자동으로 추론됩니다."
+  },
+  {
+    "id": "q10",
+    "question": "온톨로지에서 Axiom(공리)이 필요한 이유로 가장 적절한 것은?",
+    "options": [
+      "개체에 URI를 부여하기 위해",
+      "클래스와 속성에 제약을 걸어 추론과 일관성 검사를 가능하게 하기 위해",
+      "RDF 트리플을 XML로 직렬화하기 위해",
+      "SPARQL 엔드포인트를 정의하기 위해"
+    ],
+    "answer": 1,
+    "explanation": "공리는 '모든 의사는 사람이다', '사람은 최대 두 명의 부모를 가진다' 같은 제약과 규칙을 표현합니다. 이를 통해 추론기가 새로운 사실을 유도하고 데이터 일관성을 검증할 수 있습니다."
+  },
+  {
+    "id": "q11",
+    "question": "`owl:inverseOf`를 사용하여 `hasParent owl:inverseOf hasChild`를 정의하면 추론기가 유추하는 것은?",
+    "options": [
+      "모든 부모는 자녀이기도 하다",
+      "A hasParent B이면 B hasChild A가 자동으로 성립한다",
+      "hasParent와 hasChild는 동일한 관계다",
+      "hasParent는 추이적 관계가 된다"
+    ],
+    "answer": 1,
+    "explanation": "`owl:inverseOf`는 두 속성이 역관계임을 선언합니다. 따라서 'Alice hasParent Bob'이 있으면 추론기는 'Bob hasChild Alice'를 자동으로 유추합니다."
+  },
+  {
+    "id": "q12",
+    "question": "OWL 2에서 `owl:FunctionalProperty`로 선언된 속성의 의미는?",
+    "options": [
+      "해당 속성은 반드시 존재해야 한다",
+      "각 개체에 대해 해당 속성 값이 최대 하나만 존재할 수 있다",
+      "해당 속성은 양방향으로 작동한다",
+      "해당 속성은 추이적이다"
+    ],
+    "answer": 1,
+    "explanation": "`owl:FunctionalProperty`는 하나의 개체가 해당 속성에 대해 최대 하나의 값만 가질 수 있음을 의미합니다. 예: `hasBirthdate`는 사람마다 하나의 생일만 가집니다."
+  },
+  {
+    "id": "q13",
+    "question": "상위 온톨로지의 예시로 올바르지 않은 것은?",
+    "options": [
+      "BFO(Basic Formal Ontology)",
+      "DOLCE",
+      "SUMO",
+      "FIBO"
+    ],
+    "answer": 3,
+    "explanation": "BFO, DOLCE, SUMO는 도메인 독립적 최상위 개념을 제공하는 상위 온톨로지입니다. FIBO(Financial Industry Business Ontology)는 금융 도메인에 특화된 도메인 온톨로지입니다."
+  },
+  {
+    "id": "q14",
+    "question": "OWA 환경에서 '홍길동이 파리에 거주한다는 사실이 온톨로지에 없을 때' 시스템이 내리는 결론은?",
+    "options": [
+      "홍길동은 파리에 거주하지 않는다",
+      "홍길동의 거주지는 알 수 없다",
+      "홍길동은 서울에 거주한다",
+      "오류를 발생시킨다"
+    ],
+    "answer": 1,
+    "explanation": "OWA에서는 명시되지 않은 사실을 거짓이 아닌 '알 수 없음'으로 처리합니다. CWA 기반 데이터베이스라면 '파리에 거주하지 않는다'고 결론 내리겠지만, OWL 추론기는 그렇지 않습니다."
+  },
+  {
+    "id": "q15",
+    "question": "`owl:equivalentClass`를 사용하는 상황으로 가장 적절한 것은?",
+    "options": [
+      "한 클래스가 다른 클래스의 서브클래스임을 나타낼 때",
+      "두 온톨로지에서 서로 다른 이름으로 정의된 동일한 개념을 연결할 때",
+      "클래스의 인스턴스 수를 제한할 때",
+      "속성의 값 유형을 제한할 때"
+    ],
+    "answer": 1,
+    "explanation": "`owl:equivalentClass`는 두 클래스가 동일한 외연(extension)을 가짐을 선언합니다. 서로 다른 온톨로지에서 같은 개념을 다른 이름으로 정의했을 때 매핑하는 데 사용됩니다."
+  }
+]

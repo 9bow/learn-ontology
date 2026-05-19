@@ -1,0 +1,76 @@
+---
+title: learn-ontology
+description: 온톨로지의 개념·표현 언어·산업 적용·LLM 결합까지 — 65챕터로 정리한 한국어 학습 사이트
+template: splash
+hero:
+  tagline: 13개 섹션·65챕터로 정리한 온톨로지·지식그래프 학습 코스 — Palantir Foundry/AIP, GraphRAG, FIBO·SNOMED CT 같은 실제 사례부터 RDF/OWL/SPARQL 같은 핵심 기술까지.
+  actions:
+    - text: 학습 시작하기
+      link: /learn-ontology/01-intro/1-1-philosophy-to-cs/
+      icon: right-arrow
+      variant: primary
+    - text: GitHub
+      link: https://github.com/9bow/learn-ontology
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## 누구를 위한 사이트인가
+
+이 사이트는 다음 독자를 대상으로 합니다.
+
+- 지식그래프·시맨틱 데이터 인프라를 **설계**하는 데이터/AI 엔지니어
+- Palantir Foundry·AIP 또는 유사 플랫폼 **도입을 검토**하는 솔루션 아키텍트
+- LLM의 환각·다중 홉 추론 문제를 KG로 **보강**하려는 AI 엔지니어
+- 의료·금융·제조 도메인 온톨로지를 **다루는** 도메인 전문가와 PM
+
+선수 지식은 가볍습니다. 관계형 데이터베이스에 대한 일반적 이해, JSON·SQL을 읽을 수 있는 수준이면 충분합니다.
+
+## 무엇을 배우는가
+
+<CardGrid>
+  <Card title="01. 온톨로지란 무엇인가" icon="open-book">
+    철학에서 정보과학으로 옮겨온 단어의 두 얼굴. Gruber의 정의, 분류체계·시소러스·KG와의 차이, LLM 시대에 다시 떠오른 이유.
+  </Card>
+  <Card title="02~03. 구성요소와 표현 언어" icon="puzzle">
+    Class·Property·Axiom과 OWA. RDF·RDFS·OWL 2 프로파일·SHACL·SKOS·RDF-star의 표현력 차이.
+  </Card>
+  <Card title="04. SPARQL과 질의" icon="laptop">
+    SELECT·CONSTRUCT·Property Path·Federated Query. SPARQL vs Cypher vs GQL(ISO 39075) 표준 비교.
+  </Card>
+  <Card title="05. 개발 방법론과 거버넌스" icon="pencil">
+    METHONTOLOGY·NeOn·Stanford Ontology 101. Competency Question, 버저닝, FAIR.
+  </Card>
+  <Card title="06. Palantir Foundry & AIP" icon="rocket">
+    Objects·Links·Actions 메타모델. AIP × Ontology의 안전한 LLM 에이전트 패턴과 NHS·US Army·Airbus 사례.
+  </Card>
+  <Card title="07. 구현 기술 스택" icon="setting">
+    Protégé·GraphDB·Stardog·Neptune·Neo4j·Ontop·HermiT·RDFox — 의사결정 트리.
+  </Card>
+  <Card title="08. LLM × Ontology × KG" icon="star">
+    GraphRAG, Text-to-SPARQL/Cypher, Ontology-guided RAG, Neuro-symbolic AI의 부활.
+  </Card>
+  <Card title="09~11. 산업별 심화" icon="approve-check-circle">
+    의료(SNOMED·FHIR·NHS) / 금융(FIBO·Bloomberg·AML) / 제조·과학(Siemens·Digital Twin·ORKG).
+  </Card>
+  <Card title="12. 한국의 사례" icon="heart">
+    ETRI·국립국어원·네이버·카카오·공공데이터. 한국어 도메인의 형태소·존칭·고유명 이슈.
+  </Card>
+  <Card title="13. 도입·운영 전략" icon="warning">
+    ROI·POC→프로덕션 단계, 거버넌스, 실패 패턴, 2025~2027 로드맵.
+  </Card>
+</CardGrid>
+
+## 콘텐츠 원칙
+
+- 검증 불가능한 통계는 싣지 않습니다. 모든 인용은 stable primary source(arXiv, W3C, Wikipedia oldid, 공식 블로그)를 우선합니다.
+- 대안 기술은 항상 비교 표로 제시합니다. "유일한 정답"보다 trade-off를 보여줍니다.
+- 챕터당 본문 1,500자 이상을 목표로, 예시와 실제 코드/쿼리를 함께 둡니다.
+
+## 시작하기
+
+<Card title="01.1 철학에서 정보과학까지로 가기" icon="right-arrow">
+  [첫 챕터 열기](/learn-ontology/01-intro/1-1-philosophy-to-cs/)
+</Card>

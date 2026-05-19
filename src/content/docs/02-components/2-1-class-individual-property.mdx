@@ -1,0 +1,247 @@
+---
+title: "Class, Individual, Property"
+description: "온톨로지의 세 기본 빌딩 블록 — 클래스(Class), 개체(Individual), 속성(Property) — 의 개념과 OWL 표현 방식을 학습합니다."
+sidebar:
+  order: 1
+learning_objectives:
+  - Class, Individual, Property를 정의하고 예시로 설명할 수 있다
+  - Object Property와 Data Property의 차이를 구분한다
+  - Turtle 문법으로 간단한 온톨로지 조각을 작성할 수 있다
+prerequisites:
+  - "1-2-gruber-definition"
+estimated_minutes: 35
+references:
+  - title: "W3C OWL 2 Web Ontology Language Primer (Second Edition)"
+    url: "https://www.w3.org/TR/owl2-primer/"
+  - title: "W3C OWL 2 Web Ontology Language Quick Reference Guide"
+    url: "https://www.w3.org/TR/owl2-quick-reference/"
+  - title: "Noy, N. & McGuinness, D. (2001). Ontology Development 101"
+    url: "https://protege.stanford.edu/publications/ontology_development/ontology101.pdf"
+  - title: "W3C RDF 1.1 Turtle"
+    url: "https://www.w3.org/TR/turtle/"
+---
+
+## 세 가지 빌딩 블록
+
+온톨로지를 처음 배울 때 가장 먼저 만나는 세 개념이 있습니다. **Class(클래스)**, **Individual(개체)**, **Property(속성)** 입니다. 이 세 개념이 온톨로지의 근골격을 이룹니다. 일상 언어로 비유하면, 클래스는 "명사의 종류", 개체는 "구체적인 사람·사물", 속성은 "동사·형용사"에 해당합니다.
+
+이 챕터에서는 각 개념을 정의하고, OWL의 기본 표현 언어인 Turtle 문법으로 작성하는 법을 익힙니다.
+
+---
+
+## Class (클래스)
+
+**Class** 는 공통 특성을 가진 개체들의 집합입니다. 수학적으로는 집합(set)에 해당하며, 프로그래밍으로는 타입(type)에 해당합니다.
+
+OWL에서 모든 클래스는 암묵적으로 `owl:Thing`의 하위 클래스입니다. `owl:Nothing`은 어떤 개체도 속하지 않는 공집합입니다.
+
+```turtle
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix : <http://example.org/med#> .
+
+# 클래스 선언
+:Person rdf:type owl:Class .
+:Physician rdf:type owl:Class ;
+           rdfs:subClassOf :Person ;
+           rdfs:comment "의사 면허를 보유한 사람" .
+
+:Drug rdf:type owl:Class ;
+      rdfs:comment "의약품" .
+
+:Antibiotic rdf:type owl:Class ;
+            rdfs:subClassOf :Drug .
+```
+
+### 클래스 계층과 상속
+
+`rdfs:subClassOf` 관계는 **is-a 계층** 을 만듭니다. `:Antibiotic rdfs:subClassOf :Drug`는 "모든 항생제는 의약품이다"를 의미합니다. 추론 엔진은 이 관계를 이용해 항생제로 분류된 개체를 자동으로 의약품으로도 분류합니다.
+
+**주의** — `rdfs:subClassOf`는 "부분집합" 관계입니다. "의사는 사람의 일부"가 아니라 "모든 의사는 사람"이라는 의미입니다. 영어로는 "Every Physician is a Person"이라고 읽습니다.
+
+---
+
+## Individual (개체)
+
+**Individual(개체)** 은 클래스의 구체적인 인스턴스입니다. 프로그래밍으로는 객체(object instance)에 해당합니다.
+
+```turtle
+# 개체 선언 및 클래스 분류
+:DrKim rdf:type :Physician ;
+       rdfs:label "김철수 의사"@ko ;
+       :hasLicenseNumber "KR-MD-12345" .
+
+:Aspirin rdf:type :Antibiotic ;
+         rdfs:label "아스피린"@ko ;
+         :hasINN "acetylsalicylic acid" .
+
+:Amoxicillin rdf:type :Antibiotic .
+```
+
+`:DrKim`은 `:Physician`의 인스턴스입니다. 추론 엔진은 `:Physician rdfs:subClassOf :Person` 공리를 이용해, `:DrKim`이 `:Person`의 인스턴스이기도 함을 자동 도출합니다.
+
+### 개체 동일성: owl:sameAs
+
+분산된 시스템에서 같은 실세계 개체가 다른 URI로 표현될 수 있습니다. `owl:sameAs`는 두 URI가 동일한 개체를 지칭함을 선언합니다.
+
+```turtle
+# DBpedia와 Wikidata의 아스피린이 동일 개체임을 명시
+<http://dbpedia.org/resource/Aspirin>
+    owl:sameAs <http://www.wikidata.org/entity/Q18216> .
+```
+
+---
+
+## Property (속성)
+
+**Property** 는 개체와 개체, 또는 개체와 데이터 값 사이의 관계를 표현합니다. OWL은 두 종류의 속성을 구분합니다.
+
+### Object Property (객체 속성)
+
+개체와 개체 사이의 관계입니다.
+
+```turtle
+# Object Property 선언
+:prescribes rdf:type owl:ObjectProperty ;
+            rdfs:domain :Physician ;
+            rdfs:range :Drug ;
+            rdfs:comment "의사가 약물을 처방하는 관계" .
+
+:treatedBy rdf:type owl:ObjectProperty ;
+           rdfs:domain :Patient ;
+           rdfs:range :Physician ;
+           owl:inverseOf :treats .
+
+# 사용 예시
+:DrKim :prescribes :Aspirin .
+:PatientLee :treatedBy :DrKim .
+```
+
+`rdfs:domain`은 속성의 주어가 될 수 있는 클래스를, `rdfs:range`는 목적어가 될 수 있는 클래스를 지정합니다.
+
+**중요 주의사항** — OWL에서 `rdfs:domain`과 `rdfs:range`는 제약(constraint)이 아니라 **추론 힌트** 입니다. `:DrKim :prescribes :Aspirin`이 있으면, OWL 추론 엔진은 `:DrKim`이 `:Physician`이고 `:Aspirin`이 `:Drug`임을 자동으로 추론합니다. 이것이 데이터베이스 외래키와 근본적으로 다른 점입니다.
+
+### Data Property (데이터 속성)
+
+개체와 리터럴 값(문자열, 숫자, 날짜 등) 사이의 관계입니다.
+
+```turtle
+# Data Property 선언
+:hasLicenseNumber rdf:type owl:DatatypeProperty ;
+                  rdfs:domain :Physician ;
+                  rdfs:range xsd:string .
+
+:hasDosageMg rdf:type owl:DatatypeProperty ;
+             rdfs:domain :Prescription ;
+             rdfs:range xsd:decimal .
+
+:birthDate rdf:type owl:DatatypeProperty ;
+           rdfs:domain :Person ;
+           rdfs:range xsd:date .
+
+# 사용 예시
+:DrKim :hasLicenseNumber "KR-MD-12345" ;
+       :birthDate "1975-03-15"^^xsd:date .
+```
+
+### Annotation Property (주석 속성)
+
+추론에 참여하지 않는 메타데이터 속성입니다. `rdfs:label`, `rdfs:comment`, `owl:versionInfo` 등이 대표적입니다.
+
+```turtle
+:Aspirin rdfs:label "아스피린"@ko ,
+                    "Aspirin"@en ;
+         rdfs:comment "해열·진통·항혈소판 효과를 가진 약물"@ko ;
+         owl:sameAs <http://www.wikidata.org/entity/Q18216> .
+```
+
+---
+
+## 속성의 특성 (Property Characteristics)
+
+OWL은 속성에 논리적 특성을 부여할 수 있습니다. 이 특성들이 추론의 기반이 됩니다.
+
+| 특성 | OWL 선언 | 의미 |
+|------|---------|------|
+| 함수적 (Functional) | `owl:FunctionalProperty` | 각 주어에 대해 목적어가 최대 1개 |
+| 역함수적 (InverseFunctional) | `owl:InverseFunctionalProperty` | 각 목적어에 대해 주어가 최대 1개 |
+| 대칭 (Symmetric) | `owl:SymmetricProperty` | A→B이면 B→A |
+| 비대칭 (Asymmetric) | `owl:AsymmetricProperty` | A→B이면 B↛A |
+| 추이적 (Transitive) | `owl:TransitiveProperty` | A→B, B→C이면 A→C |
+| 반사 (Reflexive) | `owl:ReflexiveProperty` | 모든 개체에 대해 A→A |
+| 비반사 (Irreflexive) | `owl:IrreflexiveProperty` | A→A는 불가능 |
+
+```turtle
+# 예시: 상위 조직 관계는 추이적
+:isPartOf rdf:type owl:ObjectProperty ,
+                   owl:TransitiveProperty .
+
+# 예시: 부모-자녀 관계는 비대칭
+:hasParent rdf:type owl:ObjectProperty ,
+                    owl:AsymmetricProperty .
+
+# 예시: 주민등록번호는 역함수적 (하나의 번호 = 하나의 사람)
+:hasRRN rdf:type owl:DatatypeProperty ,
+                 owl:InverseFunctionalProperty .
+```
+
+---
+
+## TBox와 ABox: 스키마와 데이터의 분리
+
+온톨로지의 두 계층을 구분하면 구조가 명확해집니다.
+
+- **TBox (Terminological Box)** — 클래스와 속성의 정의. "어휘(vocabulary)"와 "규칙(rule)"의 영역
+- **ABox (Assertional Box)** — 개체와 개체 간 관계의 사실. "데이터"의 영역
+
+```turtle
+# TBox: 클래스와 속성 정의
+:Physician rdfs:subClassOf :Person .
+:prescribes rdfs:domain :Physician ;
+            rdfs:range :Drug .
+
+# ABox: 개체 사실
+:DrKim rdf:type :Physician .
+:DrKim :prescribes :Aspirin .
+```
+
+이 분리 덕분에 TBox는 재사용하면서 ABox만 교체할 수 있습니다. 같은 의료 온톨로지(TBox)를 서울대병원 데이터(ABox)에도, 연세의료원 데이터(ABox)에도 적용할 수 있습니다.
+
+---
+
+## 전체 예시: 간단한 의료 온톨로지
+
+```turtle
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix med: <http://example.org/med#> .
+
+# ── TBox ──────────────────────────────────────────
+med:Person       rdf:type owl:Class .
+med:Physician    rdf:type owl:Class ; rdfs:subClassOf med:Person .
+med:Patient      rdf:type owl:Class ; rdfs:subClassOf med:Person .
+med:Drug         rdf:type owl:Class .
+
+med:prescribes   rdf:type owl:ObjectProperty ;
+                 rdfs:domain med:Physician ;
+                 rdfs:range  med:Drug .
+
+med:hasName      rdf:type owl:DatatypeProperty ;
+                 rdfs:domain med:Person ;
+                 rdfs:range  xsd:string .
+
+# ── ABox ──────────────────────────────────────────
+med:DrKim        rdf:type med:Physician ;
+                 med:hasName "김철수" .
+
+med:PatientLee   rdf:type med:Patient ;
+                 med:hasName "이영희" .
+
+med:Aspirin      rdf:type med:Drug .
+
+med:DrKim        med:prescribes med:Aspirin .
+```
+
+이 예시를 OWL 추론 엔진(HermiT, Pellet, RDFox 등)에 입력하면, `med:DrKim rdf:type med:Person`은 명시하지 않았지만 자동으로 도출됩니다. 다음 챕터에서는 이 추론을 더 정밀하게 제어하는 Axiom과 Restriction을 살펴봅니다.

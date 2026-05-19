@@ -1,0 +1,134 @@
+---
+title: "8-3. Text-to-SPARQL / Text-to-Cypher"
+description: "자연어 질의를 SPARQL·Cypher로 자동 변환하는 기술, 평가 벤치마크, 주요 접근법 비교"
+sidebar:
+  order: 3
+learning_objectives:
+  - "Text-to-SPARQL과 Text-to-Cypher 변환의 기술적 어려움을 설명할 수 있다"
+  - "QALD, LC-QuAD, Spider4SPARQL 등 주요 벤치마크의 특징을 비교할 수 있다"
+  - "파인튜닝 기반 접근법과 LLM 프롬프트 기반 접근법의 트레이드오프를 설명할 수 있다"
+  - "스키마 링킹(schema linking)이 왜 변환 품질의 핵심인지 설명할 수 있다"
+prerequisites:
+  - "SPARQL 1.1 기본 문법"
+  - "Cypher 쿼리 기본"
+  - "LLM 프롬프팅 개념"
+estimated_minutes: 30
+references:
+  - title: "Usbeck et al. 2023 — QALD-10: Question Answering over Linked Data (arXiv:2309.01421)"
+    url: "https://arxiv.org/abs/2309.01421"
+  - title: "Dubey et al. 2019 — LC-QuAD 2.0 (ISWC 2019)"
+    url: "https://doi.org/10.1007/978-3-030-30796-7_5"
+  - title: "Luo et al. 2023 — ChatKBQA (arXiv:2310.08975)"
+    url: "https://arxiv.org/abs/2310.08975"
+  - title: "Poesia et al. 2022 — Synchromesh: Reliable Code Generation (ICLR 2022)"
+    url: "https://openreview.net/forum?id=KmtVD97J43e"
+---
+
+자연어 질문을 SPARQL이나 Cypher 쿼리로 자동 변환하는 기술(KBQA: Knowledge Base Question Answering)은 전문 지식 없이도 지식그래프를 활용할 수 있게 하는 핵심 인터페이스다. "스티브 잡스가 설립한 회사는?" 같은 질문을 SPARQL로 자동 변환해 실행하면 사용자가 쿼리 언어를 몰라도 KG를 활용할 수 있다.
+
+## 기술적 어려움
+
+Text-to-SPARQL/Cypher는 일반 Text-to-SQL보다 어렵다. 주요 이유는 세 가지다.
+
+**1. 스키마 복잡성:** 관계형 DB 스키마는 수십 개 테이블이지만, KG의 스키마(온톨로지)는 수천~수십만 개의 클래스와 프로퍼티를 가질 수 있다. 모든 스키마를 프롬프트에 넣을 수 없으므로 관련 부분만 선택적으로 제공해야 한다(스키마 링킹).
+
+**2. IRI 생성:** SPARQL은 `wdt:P19` 같은 IRI를 정확히 써야 한다. LLM은 IRI를 기억하지 못하거나 환각으로 존재하지 않는 IRI를 생성할 수 있다.
+
+**3. SPARQL 표현력:** OPTIONAL, FILTER, HAVING, Property Path, Federated Query 등 복잡한 SPARQL 구문은 LLM이 정확히 생성하기 어렵다.
+
+**4. 다중 홉 질의:** "스티브 잡스가 설립한 회사의 현재 CEO가 다닌 대학은?" 같은 다중 홉 질의는 여러 엔티티를 연결해야 하며 오류가 누적된다.
+
+## 주요 벤치마크
+
+**QALD (Question Answering over Linked Data):**
+DBpedia를 대상으로 한 자연어 QA 벤치마크. QALD-1(2011)부터 QALD-10(2023)까지 이어졌다. 영어, 독일어, 스페인어 등 다국어 질문을 포함한다. SPARQL 정답 쿼리와 함께 F1 score로 평가한다.
+
+**LC-QuAD 2.0:**
+Wikidata와 DBpedia를 대상으로 한 대규모 복잡 질문 데이터셋. 3만 개의 (자연어 질문, SPARQL 쿼리) 쌍을 포함한다. 단순 사실 질문부터 다중 홉, 집계, 비교 질문까지 커버한다.
+
+**WebQSP / ComplexWebQuestions:**
+Freebase(현재 Wikidata로 이전) 기반. WebQSP는 4,737개 질문, ComplexWebQuestions는 2홉 이상 34,689개 질문을 포함한다. SPARQL이 아닌 S-expression 형태로 정답을 표현한다.
+
+**평가 지표:**
+- **Exact Match (EM)**: 생성된 쿼리가 정답 쿼리와 정확히 일치하는 비율.
+- **F1 (Answer F1)**: 생성 쿼리를 실행한 결과와 정답 결과의 F1 overlap. EM보다 실용적이다.
+- **Execution Accuracy**: 쿼리 실행 결과가 정답과 일치하는 비율.
+
+## 주요 접근법
+
+### 1. 파인튜닝 기반
+
+T5, BART, LLaMA 같은 언어 모델을 (자연어, SPARQL) 쌍으로 파인튜닝한다.
+
+**장점:** 특정 KG 스키마에 특화된 고품질 쿼리 생성. 추론 시 API 비용 없음.
+
+**단점:** KG 스키마가 바뀌면 재훈련 필요. 훈련 데이터 구축 비용.
+
+**대표 모델:** SPARQL-T5, KGT5, ChatKBQA (LLaMA 파인튜닝 + 엔티티 검색).
+
+### 2. LLM 프롬프트 기반 (Few-shot / Zero-shot)
+
+GPT-4, Claude 같은 대형 모델에 온톨로지 스키마 일부와 예시 쿼리를 프롬프트로 제공해 새 질문에 대한 쿼리를 생성한다.
+
+**스키마 링킹 전략:**
+1. 질문에서 엔티티·관계 후보를 추출한다.
+2. KG 스키마에서 관련 클래스·프로퍼티를 벡터 유사도로 검색한다.
+3. 선택된 스키마 조각을 프롬프트에 포함한다.
+
+```
+다음 온톨로지 스키마를 참고해 SPARQL 쿼리를 작성하세요:
+
+클래스: schema:Person, schema:Organization
+프로퍼티: schema:founder (Organization → Person), schema:name
+
+질문: "애플의 설립자는 누구인가?"
+SPARQL:
+SELECT ?founderName WHERE {
+  ?org a schema:Organization ;
+       schema:name "애플" ;
+       schema:founder ?founder .
+  ?founder schema:name ?founderName .
+}
+```
+
+**장점:** 파인튜닝 없이 새 KG에 즉시 적용 가능. 다국어 지원 우수.
+
+**단점:** 복잡한 쿼리에서 IRI 오류·구문 오류 발생. 스키마 링킹 품질에 크게 의존.
+
+### 3. 생성-검색 혼합 (Generate-then-Retrieve)
+
+ChatKBQA 방식: LLM이 먼저 엔티티 이름과 관계 이름을 포함한 "논리 형태"를 생성한 뒤, 생성된 이름을 KG에서 실제 IRI로 검색해 대체한다. IRI 환각 문제를 완화할 수 있다.
+
+### 4. 실행 기반 피드백
+
+생성된 쿼리를 즉시 KG에 실행하고, 오류가 발생하면 오류 메시지를 다시 LLM에 피드백해 재생성한다(Self-debugging). Synchromesh는 문법 제약(constrained decoding)을 추가해 구문 오류 자체를 방지한다.
+
+## Text-to-Cypher
+
+Neo4j 등 LPG 기반 KG에서는 Cypher 생성이 필요하다. SPARQL보다 구문이 단순하지만, 노드 레이블·관계 타입·프로퍼티 이름을 정확히 알아야 한다.
+
+Neo4j는 LangChain·LlamaIndex 연동 모듈과 GraphCypherQAChain을 제공해 자연어 → Cypher → 실행 → 답변 파이프라인을 쉽게 구성할 수 있다.
+
+```python
+# LangChain GraphCypherQAChain 예시
+from langchain_community.graphs import Neo4jGraph
+from langchain.chains import GraphCypherQAChain
+from langchain_openai import ChatOpenAI
+
+graph = Neo4jGraph(url="bolt://localhost:7687", username="neo4j", password="...")
+chain = GraphCypherQAChain.from_llm(
+    ChatOpenAI(model="gpt-4o"),
+    graph=graph,
+    verbose=True
+)
+result = chain.invoke("애플의 설립자는 누구인가?")
+```
+
+## 현재 한계와 실무 권고
+
+현재 최고 성능 모델도 LC-QuAD 2.0 같은 복잡 벤치마크에서 Execution Accuracy 60~75% 수준이다. 완전 자동화보다는 다음 전략이 실용적이다.
+
+- 단순·반복 질의는 완전 자동화 (높은 정확도).
+- 복잡한 집계·다중 홉 질의는 LLM 생성 후 사람 검토.
+- 자주 쓰이는 쿼리 템플릿을 미리 정의하고 파라미터만 LLM으로 채우는 하이브리드 방식.
+- 생성된 쿼리를 실행하기 전 SPARQL 파서로 구문 검증.

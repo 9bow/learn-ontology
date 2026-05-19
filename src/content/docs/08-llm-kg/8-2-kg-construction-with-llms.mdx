@@ -1,0 +1,126 @@
+---
+title: "8-2. LLM 기반 지식그래프 구축"
+description: "REBEL, GraphRAG 추출, LLM Triple Extraction — 비정형 텍스트에서 지식그래프를 자동 구축하는 방법"
+sidebar:
+  order: 2
+learning_objectives:
+  - "관계 추출(RE)과 엔티티 인식(NER)이 KG 구축 파이프라인에서 하는 역할을 설명할 수 있다"
+  - "REBEL 모델의 구조와 seq2seq 관계 추출 방식을 설명할 수 있다"
+  - "LLM 프롬프트 기반 트리플 추출의 장단점을 REBEL 같은 파인튜닝 모델과 비교할 수 있다"
+  - "KG 구축 파이프라인에서 엔티티 링킹과 중복 제거가 왜 중요한지 설명할 수 있다"
+prerequisites:
+  - "관계 추출(Relation Extraction) 개념"
+  - "트랜스포머 기반 언어 모델 기초"
+estimated_minutes: 32
+references:
+  - title: "Huguet Cabot & Navigli 2021 — REBEL: Relation Extraction By End-to-end Language generation (EMNLP)"
+    url: "https://aclanthology.org/2021.findings-emnlp.204"
+  - title: "Trajanoska et al. 2023 — Enhancing KG Construction Using LLMs (arXiv:2305.04676)"
+    url: "https://arxiv.org/abs/2305.04676"
+  - title: "Pan et al. 2024 — Unifying LLMs and Knowledge Graphs: A Roadmap (IEEE TKDE)"
+    url: "https://doi.org/10.1109/TKDE.2024.3352100"
+---
+
+텍스트에서 지식그래프를 자동으로 구축하는 과정은 크게 세 단계로 나뉜다. **엔티티 인식(NER)**: 텍스트에서 언급된 엔티티(인물, 조직, 개념 등)를 식별한다. **관계 추출(RE)**: 엔티티 쌍 사이의 의미 관계를 식별한다. **엔티티 링킹**: 추출된 엔티티를 Wikidata, DBpedia 같은 외부 KG의 표준 IRI에 연결한다.
+
+전통적으로 NER과 RE는 별도의 파이프라인으로 수행됐으나, 최근에는 엔드투엔드(end-to-end) 방식이나 LLM을 직접 사용하는 접근법이 확산되고 있다.
+
+## REBEL (Relation Extraction By End-to-end Language generation)
+
+REBEL은 2021년 EMNLP에서 발표된 모델로, BART 기반 seq2seq 아키텍처로 문장에서 (주어, 관계, 목적어) 트리플을 직접 생성한다. 별도의 NER 단계 없이 관계 추출을 엔드투엔드로 수행한다는 점이 핵심이다.
+
+**작동 방식:**
+
+입력 문장 → BART 인코더-디코더 → 특수 토큰으로 구조화된 트리플 시퀀스 출력
+
+출력 형식 예시:
+```
+<triplet> 알베르트 아인슈타인 <subj> 노벨 물리학상 <obj> 수상자 <triplet> 알베르트 아인슈타인 <subj> 독일 <obj> 출생지
+```
+
+**학습 데이터:** Wikipedia 문단과 Wikidata 트리플을 자동 정렬해 약 220만 개의 (문장, 트리플) 쌍으로 학습됐다. 220개 이상의 관계 유형을 커버한다.
+
+**장점:**
+- 별도의 NER 모델 없이 단일 모델로 트리플 추출.
+- Hugging Face에서 사전 학습 모델을 바로 사용할 수 있다(`Babelscape/rebel-large`).
+- 도메인 데이터로 파인튜닝해 특화 관계 추출 가능.
+
+**한계:**
+- 220개 관계 유형 외의 관계는 추출하지 못한다.
+- 문장 수준에서 작동하므로 문서 전체를 아우르는 장거리 관계는 포착하기 어렵다.
+- 영어 중심 학습 데이터로 한국어 등 비영어 성능이 제한된다.
+
+```python
+# REBEL 사용 예시 (Hugging Face Transformers)
+from transformers import pipeline
+
+triplet_extractor = pipeline(
+    "text2text-generation",
+    model="Babelscape/rebel-large",
+    tokenizer="Babelscape/rebel-large"
+)
+
+text = "Albert Einstein was born in Ulm, Germany, and won the Nobel Prize in Physics."
+result = triplet_extractor(text, return_tensors=True, return_text=False)
+```
+
+## LLM 프롬프트 기반 트리플 추출
+
+GPT-4, Claude, Llama 같은 대형 언어 모델은 프롬프트만으로 트리플 추출을 수행할 수 있다. 파인튜닝 없이 Few-shot 예시만으로 새로운 도메인에 즉시 적용할 수 있다는 장점이 있다.
+
+**프롬프트 패턴:**
+
+```
+다음 텍스트에서 (주어, 관계, 목적어) 형태의 트리플을 JSON 배열로 추출하세요.
+관계는 다음 목록에서만 선택하세요: [founded_by, located_in, works_for, ...]
+
+텍스트: "삼성전자는 1969년 이병철에 의해 설립됐으며 수원에 본사를 두고 있다."
+
+출력:
+[
+  {"subject": "삼성전자", "relation": "founded_by", "object": "이병철"},
+  {"subject": "삼성전자", "relation": "located_in", "object": "수원"}
+]
+```
+
+**장점:**
+- 관계 유형을 도메인에 맞게 자유롭게 정의할 수 있다.
+- 한국어, 일본어 등 다국어를 즉시 처리할 수 있다.
+- 온톨로지에서 허용 관계 목록을 가져와 프롬프트에 주입하면 온톨로지 정합성을 유지할 수 있다.
+- 복잡한 맥락이나 암묵적 관계도 LLM의 언어 이해력으로 추출 가능하다.
+
+**한계:**
+- REBEL 같은 파인튜닝 모델보다 처리 비용이 높다.
+- 출력 형식 일관성이 프롬프트에 크게 의존한다 (구조화 출력 모드로 완화 가능).
+- 대규모 문서에 적용하면 API 비용이 빠르게 증가한다.
+- 환각으로 텍스트에 없는 트리플을 생성할 수 있다.
+
+## KG 구축 파이프라인 설계
+
+실제 KG 구축 파이프라인은 추출 모델 하나로 끝나지 않는다. 다음 단계들이 함께 필요하다.
+
+**엔티티 링킹(Entity Linking):**
+추출된 "이병철"을 Wikidata의 Q1045294처럼 표준 IRI에 연결한다. 동일 엔티티의 표면 형태 변이(이병철, 李秉喆, Lee Byung-chul)를 하나의 노드로 병합한다. REL, BLINK, mGENRE 같은 엔티티 링킹 모델이 있다.
+
+**중복 제거(Deduplication):**
+같은 의미의 트리플이 여러 문서에서 추출될 수 있다. 트리플 표준화(리터럴 정규화, IRI 통일)와 중복 병합이 필요하다.
+
+**신뢰도 필터링:**
+LLM 추출 트리플의 신뢰도는 소스 문장의 품질, 관계 유형의 명확성에 따라 다르다. 확신도(confidence score)를 부여하고 낮은 신뢰도 트리플은 검토 큐에 올리는 것이 좋다.
+
+**온톨로지 정합성 검증:**
+SHACL이나 SPARQL ASK 쿼리로 추출된 트리플이 도메인 온톨로지를 위반하지 않는지 검사한다. 예: `founded_by`의 목적어는 반드시 `foaf:Person` 또는 `org:Organization` 타입이어야 한다.
+
+## GraphRAG 방식의 KG 구축
+
+8-1 챕터에서 소개한 GraphRAG의 인덱싱 파이프라인도 일종의 KG 구축이다. REBEL처럼 관계 유형을 미리 정의하지 않고, LLM이 자유롭게 엔티티·관계를 추출한다. 구조화된 온톨로지 없이도 작동하지만, 관계 유형이 비표준화되어 SPARQL 질의나 추론에는 직접 활용하기 어렵다.
+
+## 비교 요약
+
+| 방법 | 도구 | 관계 유형 | 다국어 | 비용 | 온톨로지 통합 |
+|------|------|---------|--------|------|--------------|
+| 파인튜닝 RE | REBEL | 고정 (220개) | 제한적 | 낮음 | 수동 매핑 필요 |
+| LLM 프롬프트 | GPT-4, Claude | 자유 정의 | 우수 | 높음 | 프롬프트로 통합 |
+| GraphRAG 추출 | microsoft/graphrag | 비정형 | 우수 | 높음 | 어려움 |
+
+**권장 조합:** 고처리량·저비용 요구 시 REBEL로 1차 추출 후 LLM으로 어려운 케이스만 재처리. 온톨로지 정합성이 중요한 도메인은 LLM 프롬프트에 허용 관계 목록을 주입하는 방식이 실용적이다.

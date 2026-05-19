@@ -1,0 +1,131 @@
+---
+title: "Open Research Knowledge Graph와 과학 데이터 통합"
+description: "TIB 하노버의 ORKG를 중심으로 과학 연구 데이터를 지식 그래프로 구조화하는 방법과 FAIR 데이터 원칙의 연계를 살펴봅니다."
+sidebar:
+  order: 4
+learning_objectives:
+  - ORKG(Open Research Knowledge Graph)의 목적과 핵심 데이터 모델을 설명할 수 있다
+  - FAIR 데이터 원칙이 과학 온톨로지 설계에 어떻게 반영되는지 서술할 수 있다
+  - 과학 지식 그래프가 전통적인 논문 데이터베이스와 다른 점을 비교할 수 있다
+prerequisites:
+  - "11-3-supply-chain-graph"
+estimated_minutes: 30
+references:
+  - title: "Jaradeh, M.Y. et al. (2019). Open Research Knowledge Graph. K-CAP"
+    url: "https://doi.org/10.1145/3360901.3364435"
+  - title: "ORKG 공식 사이트 — TIB Hannover"
+    url: "https://orkg.org/"
+  - title: "Wilkinson, M.D. et al. (2016). The FAIR Guiding Principles. Scientific Data"
+    url: "https://doi.org/10.1038/sdata.2016.18"
+  - title: "Dessì, D. et al. (2020). CORD-19: The COVID-19 Open Research Dataset KG. arXiv"
+    url: "https://arxiv.org/abs/2010.13984"
+---
+
+import Quiz from '../../../components/learning/Quiz.tsx';
+
+## 과학 지식의 단절 문제
+
+매년 수백만 편의 과학 논문이 출판됩니다. 그러나 이 방대한 지식은 대부분 PDF 형태로 갇혀 있습니다. A 논문이 B 방법을 사용해 C 데이터셋에서 D 성능을 달성했다는 사실을 기계가 이해하지 못합니다. 연구자는 관련 논문을 수동으로 읽고 비교해야 합니다.
+
+이 문제를 해결하는 접근법이 **과학 지식 그래프(Scientific Knowledge Graph)** 입니다. 논문의 주장, 방법론, 데이터셋, 결과를 구조화된 트리플로 표현해 기계가 이해하고 비교할 수 있게 합니다.
+
+---
+
+## ORKG: Open Research Knowledge Graph
+
+**ORKG(Open Research Knowledge Graph)** 는 독일 하노버 TIB(Leibniz Information Centre for Science and Technology)가 주도하는 오픈 프로젝트입니다. 목표는 과학 논문의 핵심 내용을 RDF 트리플로 표현해 비교 가능하고 재사용 가능한 형태로 만드는 것입니다.
+
+ORKG의 핵심 개념은 **비교(Comparison)** 입니다. 같은 연구 문제를 다룬 여러 논문을 행(논문)과 열(속성)로 구성된 표로 비교합니다. 예를 들어 "기계 번역 성능 비교" 페이지에는 다음과 같은 구조가 있습니다.
+
+| 논문 | 모델 | 데이터셋 | BLEU 점수 | 언어 쌍 |
+|------|------|---------|----------|--------|
+| Vaswani et al. (2017) | Transformer | WMT 2014 | 28.4 | EN→DE |
+| Wu et al. (2016) | GNMT | WMT 2014 | 26.3 | EN→DE |
+
+이 표의 각 셀이 RDF 트리플로 저장됩니다.
+
+---
+
+## ORKG의 데이터 모델
+
+ORKG는 자체 온톨로지를 사용합니다. 핵심 클래스는 다음과 같습니다.
+
+```turtle
+orkg:Paper a owl:Class ;
+    rdfs:label "Research Paper" .
+
+orkg:Contribution a owl:Class ;
+    rdfs:label "Research Contribution" .
+
+orkg:Problem a owl:Class ;
+    rdfs:label "Research Problem" .
+
+orkg:Paper orkg:hasContribution orkg:Contribution .
+orkg:Contribution orkg:addresses orkg:Problem .
+orkg:Contribution orkg:usesMethod orkg:Method .
+orkg:Contribution orkg:hasResult orkg:Result .
+```
+
+각 논문은 하나 이상의 `Contribution`을 가지며, 각 기여는 특정 연구 문제를 다루고 특정 방법을 사용해 특정 결과를 냈다고 표현됩니다.
+
+---
+
+## FAIR 데이터 원칙
+
+ORKG의 설계 철학은 **FAIR 원칙**에 기반합니다. 2016년 Nature Scientific Data에 발표된 FAIR 원칙은 과학 데이터가 갖춰야 할 네 가지 속성을 정의합니다.
+
+| 원칙 | 영문 | 의미 |
+|------|------|------|
+| F | Findable | 데이터가 발견 가능해야 한다 (고유 식별자, 메타데이터) |
+| A | Accessible | 데이터가 접근 가능해야 한다 (표준 프로토콜, 인증 정책 명시) |
+| I | Interoperable | 데이터가 상호운용 가능해야 한다 (표준 어휘, RDF/OWL) |
+| R | Reusable | 데이터가 재사용 가능해야 한다 (라이선스 명시, 출처 정보) |
+
+온톨로지는 FAIR의 "I(Interoperable)" 요건을 충족하는 핵심 도구입니다. 데이터를 표준 어휘(Dublin Core, DCAT, PROV-O)로 기술하면 다른 시스템이 의미를 이해하고 통합할 수 있습니다.
+
+---
+
+## 주요 과학 지식 그래프 비교
+
+ORKG 외에도 다양한 과학 지식 그래프가 존재합니다.
+
+| 프로젝트 | 주체 | 특징 |
+|---------|------|------|
+| ORKG | TIB 하노버 | 논문 비교 중심, 연구자 직접 입력 |
+| OpenAlex | OurResearch | 논문·저자·기관·개념의 대규모 오픈 그래프 |
+| Semantic Scholar | Allen AI | AI 논문 특화, 인용 그래프 + 의미 분석 |
+| Microsoft Academic Graph | Microsoft (종료) | 대규모 학술 그래프, 현재 OpenAlex로 계승 |
+| PubChem | NCBI | 화학 물질 지식 그래프 |
+| UniProt | EBI/SIB/PIR | 단백질 지식 베이스 (RDF 형식 제공) |
+
+---
+
+## 제조·산업 연구와의 연계
+
+과학 지식 그래프가 제조 섹션에 포함된 이유는 산업 R&D와의 연계 때문입니다.
+
+**재료 과학:** 새로운 합금이나 고분자 소재의 특성(강도, 내열성, 전도율)을 논문에서 추출해 재료 지식 그래프로 구성하면, "인장강도 500MPa 이상이면서 밀도 3g/cm³ 미만인 합금"을 쿼리로 탐색할 수 있습니다. 이는 신소재 개발 사이클을 단축합니다.
+
+**공정 최적화:** 제조 공정 파라미터(온도, 압력, 반응 시간)와 결과(수율, 품질)를 논문과 실험 데이터에서 추출해 지식 그래프로 통합합니다. 기업 내부 실험 데이터와 학술 연구 결과를 함께 조회할 수 있습니다.
+
+**특허 분석:** 특허 문서에서 기술 개념과 청구항을 추출해 지식 그래프로 구성하면, 특정 기술 영역의 특허 지형을 시각화하고 공백 영역을 탐색할 수 있습니다.
+
+---
+
+## 자동화와 인간 검토의 균형
+
+과학 지식 그래프 구축에서 핵심 과제는 데이터 입력 방식입니다.
+
+**자동 추출(NLP):** LLM이나 정보 추출 모델로 논문에서 트리플을 자동 생성합니다. 속도는 빠르지만 오류율이 높고 도메인별 정밀도가 낮습니다.
+
+**크라우드소싱:** ORKG처럼 연구자 커뮤니티가 직접 입력합니다. 정확도는 높지만 확장성이 낮고 특정 분야에 편중됩니다.
+
+**하이브리드:** NLP로 초안을 생성하고 도메인 전문가가 검토·수정합니다. ORKG는 이 방향으로 발전하고 있습니다.
+
+---
+
+## 정리
+
+Open Research Knowledge Graph는 과학 지식의 재사용성과 비교 가능성을 높이는 중요한 시도입니다. FAIR 원칙과 RDF 표준을 기반으로 하며, 제조·재료 과학 분야의 산업 R&D와도 직접 연결됩니다. 제조 섹션의 마지막인 이 챕터에서 다룬 내용을 퀴즈로 확인하세요.
+
+<Quiz section="11-manufacturing" client:load />

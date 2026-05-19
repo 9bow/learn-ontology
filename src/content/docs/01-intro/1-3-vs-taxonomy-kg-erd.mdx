@@ -1,0 +1,174 @@
+---
+title: "분류체계·시소러스·스키마·ERD·지식그래프와의 차이"
+description: "온톨로지를 유사 개념들과 비교표로 정리합니다. 각 표현 방식의 표현력, 추론 능력, 적용 범위를 명확히 구분합니다."
+sidebar:
+  order: 3
+learning_objectives:
+  - 분류체계(taxonomy), 시소러스(thesaurus), 스키마(schema), ERD, 지식그래프, 온톨로지의 차이를 비교표로 설명할 수 있다
+  - 각 표현 방식이 어떤 관계 유형을 표현할 수 있는지 구분한다
+  - 실무에서 어떤 상황에 어떤 도구를 선택해야 하는지 판단 기준을 갖는다
+prerequisites:
+  - "1-2-gruber-definition"
+estimated_minutes: 35
+references:
+  - title: "W3C SKOS Simple Knowledge Organization System Reference"
+    url: "https://www.w3.org/TR/skos-reference/"
+  - title: "W3C OWL 2 Web Ontology Language Primer"
+    url: "https://www.w3.org/TR/owl2-primer/"
+  - title: "Noy, N. & McGuinness, D. (2001). Ontology Development 101"
+    url: "https://protege.stanford.edu/publications/ontology_development/ontology101.pdf"
+  - title: "Pan, J.Z. et al. (2023). Large Language Models and Knowledge Graphs. arXiv:2306.08302"
+    url: "https://arxiv.org/abs/2306.08302"
+---
+
+## 왜 구분이 필요한가
+
+실무에서 "온톨로지를 구축하자"는 제안을 하면, 팀원들이 서로 다른 그림을 상상합니다. 어떤 사람은 엑셀 분류 표를 떠올리고, 어떤 사람은 ER 다이어그램을, 어떤 사람은 Neo4j 그래프를 생각합니다. 이 혼란은 나쁜 것이 아닙니다. 각 개념이 서로 겹치는 부분이 있기 때문입니다.
+
+그러나 정확한 구분 없이는 잘못된 도구를 선택하게 됩니다. 이 챕터에서는 다섯 가지 유사 개념을 온톨로지와 나란히 놓고 비교합니다.
+
+---
+
+## 1. 분류체계 (Taxonomy)
+
+**분류체계(taxonomy)** 는 개념을 계층적 **is-a** 관계로만 정리한 구조입니다. 린네의 생물 분류(계-문-강-목-과-속-종)가 가장 유명한 예입니다.
+
+```
+동물
+├── 척추동물
+│   ├── 포유류
+│   │   ├── 고래
+│   │   └── 박쥐
+│   └── 조류
+└── 무척추동물
+```
+
+분류체계는 강력하고 직관적이지만, **is-a 관계 외의 관계를 표현하지 못합니다.** "박쥐는 포유류다"는 표현할 수 있지만, "박쥐는 야행성이다"나 "박쥐는 동굴에 서식한다"는 표현하지 못합니다. 또한 추론 엔진이 개입할 여지가 없습니다.
+
+대표 사례: ITIS(통합 분류 정보 시스템), NAICS 산업 분류, 파일시스템 디렉토리
+
+---
+
+## 2. 시소러스 (Thesaurus)
+
+**시소러스(thesaurus)** 는 분류체계에 동의어(synonyms), 관련어(related terms), 상위어(broader terms), 하위어(narrower terms) 관계를 추가한 구조입니다. 도서관학에서 정보 검색(IR)을 위해 발전했습니다.
+
+ISO 25964(정보·문헌 분야 시소러스 표준)는 세 가지 기본 관계를 정의합니다.
+
+- **BT(Broader Term)** — 상위 개념: `Penicillin → BT: Antibiotic`
+- **NT(Narrower Term)** — 하위 개념: `Antibiotic → NT: Penicillin`
+- **RT(Related Term)** — 관련어: `Infection ↔ RT: Antibiotic`
+
+시소러스는 검색 품질 향상에 탁월하지만, **관계의 의미(semantics)가 제한적**입니다. "RT" 관계가 실제로 어떤 종류의 관련성인지 기계가 알 수 없습니다.
+
+W3C의 **SKOS(Simple Knowledge Organization System)** 는 시소러스를 RDF로 표현하는 표준입니다. SKOS는 섹션 03에서 상세히 다룹니다.
+
+---
+
+## 3. 데이터베이스 스키마 (Schema)
+
+관계형 데이터베이스의 **스키마(schema)** 는 테이블, 컬럼, 데이터 타입, 외래키를 정의합니다.
+
+```sql
+CREATE TABLE Patient (
+  patient_id INTEGER PRIMARY KEY,
+  name       VARCHAR(100) NOT NULL,
+  birth_date DATE
+);
+
+CREATE TABLE Prescription (
+  prescription_id INTEGER PRIMARY KEY,
+  patient_id      INTEGER REFERENCES Patient(patient_id),
+  drug_name       VARCHAR(100),
+  dosage          DECIMAL(5,2)
+);
+```
+
+스키마는 데이터 **저장 구조**를 정의합니다. 엄격하고 효율적이지만, 두 가지 한계가 있습니다.
+
+1. **의미 부재** — `drug_name VARCHAR(100)`이 INN(국제 일반명)인지 상품명인지 구분할 방법이 없습니다
+2. **추론 불가** — "환자가 알레르기 반응을 보인 약물과 같은 계열의 약을 처방하면 경고를 낸다"는 스키마만으로는 구현할 수 없습니다
+
+---
+
+## 4. Entity-Relationship Diagram (ERD)
+
+**ERD** 는 엔티티(entity), 속성(attribute), 관계(relationship)를 시각적으로 표현하는 모델링 기법입니다. 피터 첸(Peter Chen)이 1976년 제안했습니다.
+
+```
+[Patient] ---< treats >--- [Physician]
+    |                           |
+ name                      license_no
+ birth_date                 specialty
+```
+
+ERD는 스키마보다 추상적이어서 의사소통 도구로 유용합니다. 그러나 역시 **의미 추론이 불가능**하고, 표현할 수 있는 관계 유형이 제한적입니다. "동일한 전문과의 의사는 같은 종류의 처방을 낼 수 있다"는 규칙을 ERD로 표현할 수 없습니다.
+
+---
+
+## 5. 지식그래프 (Knowledge Graph)
+
+**지식그래프(Knowledge Graph, KG)** 는 사실 온톨로지와 가장 혼동되는 개념입니다. 구글이 2012년 발표한 "Knowledge Graph"는 이 용어를 대중화했습니다.
+
+엄밀히 말하면, 지식그래프는 **RDF 트리플(또는 유사 형식)로 표현된 사실들의 집합**입니다. 이것은 온톨로지와 다릅니다.
+
+- **온톨로지** — "의사는 사람이다", "처방에는 반드시 약물이 있어야 한다" (스키마·규칙·공리)
+- **지식그래프** — "홍길동은 의사다", "홍길동은 아스피린을 처방했다" (사실·개체 데이터)
+
+실무에서는 이 둘이 결합됩니다. 온톨로지가 **TBox(Terminological Box)** 역할을, 지식그래프가 **ABox(Assertional Box)** 역할을 합니다. Wikidata, DBpedia, Google Knowledge Graph 등은 TBox와 ABox를 모두 포함합니다.
+
+```turtle
+# TBox (온톨로지 — 클래스·속성 정의)
+:Physician rdfs:subClassOf :Person .
+:prescribes rdf:type owl:ObjectProperty ;
+            rdfs:domain :Physician ;
+            rdfs:range :Drug .
+
+# ABox (지식그래프 — 개체 데이터)
+:DrKim rdf:type :Physician .
+:DrKim :prescribes :Aspirin .
+```
+
+---
+
+## 종합 비교표
+
+| 특성 | 분류체계 | 시소러스 | 스키마/ERD | 지식그래프 | 온톨로지 |
+|------|---------|---------|-----------|-----------|---------|
+| 계층 관계(is-a) | ✅ | ✅ | 제한적 | ✅ | ✅ |
+| 다양한 관계 유형 | ❌ | 제한적 | 제한적 | ✅ | ✅ |
+| 형식 의미론 | ❌ | ❌ | ❌ | 부분적 | ✅ |
+| 자동 추론 | ❌ | ❌ | ❌ | 제한적 | ✅ |
+| 열린 세계 가정(OWA) | ❌ | ❌ | ❌ | 설정 가능 | ✅ |
+| 표현 언어 표준 | 없음 | ISO 25964, SKOS | SQL, UML | RDF, 독자 | RDF/OWL |
+| 의미적 상호운용성 | 낮음 | 중간 | 낮음 | 중간 | 높음 |
+| 설계 복잡도 | 낮음 | 중간 | 중간 | 중간 | 높음 |
+| 대표 사례 | ITIS, NAICS | MeSH, WordNet | MySQL 스키마 | Wikidata, DBpedia | SNOMED CT, FIBO |
+
+---
+
+## 실무 선택 가이드
+
+도구 선택은 **목적**에 따라 달라집니다.
+
+**분류체계로 충분한 경우** — 단순 계층 탐색, 제품 카탈로그 계층화
+
+**시소러스로 충분한 경우** — 문서 검색 품질 향상, 동의어 처리
+
+**스키마/ERD로 충분한 경우** — 트랜잭션 중심 애플리케이션, CRUD 시스템
+
+**지식그래프가 적합한 경우** — 이종 데이터 통합, 관계 탐색 쿼리, 그래프 기반 추천
+
+**온톨로지가 필요한 경우:**
+- 도메인 지식을 **형식 규칙**으로 표현해야 할 때
+- 서로 다른 시스템 간 **의미적 상호운용성**이 필요할 때
+- 데이터에서 **자동 추론**으로 새로운 사실을 도출해야 할 때
+- 장기적으로 **지식을 확장·진화**시켜야 할 때
+
+---
+
+## 겹치는 영역과 혼용
+
+현실에서는 이 개념들이 혼용됩니다. Google의 "Knowledge Graph"는 사실 온톨로지적 요소(스키마, 제약)를 포함합니다. SNOMED CT는 분류체계이면서 시소러스이면서 온톨로지입니다.
+
+중요한 것은 어떤 라벨을 붙이느냐가 아니라, **어떤 표현력이 필요하고 어떤 추론이 필요한지**를 명확히 하는 것입니다. 다음 챕터에서는 LLM 시대에 온톨로지가 다시 주목받는 이유를 살펴봅니다.

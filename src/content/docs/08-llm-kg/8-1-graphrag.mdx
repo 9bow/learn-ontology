@@ -1,0 +1,123 @@
+---
+title: "8-1. GraphRAG"
+description: "Microsoft GraphRAG (arXiv:2404.16130) — Local vs Global 검색, Naive RAG의 한계와 그래프 기반 해결책"
+sidebar:
+  order: 1
+learning_objectives:
+  - "Naive RAG의 구조적 한계(단편적 청크 검색, 글로벌 컨텍스트 손실)를 설명할 수 있다"
+  - "GraphRAG의 커뮤니티 요약 기반 Global Search 메커니즘을 설명할 수 있다"
+  - "Local Search와 Global Search의 차이와 각각이 적합한 질의 유형을 구분할 수 있다"
+  - "GraphRAG 파이프라인의 주요 단계(엔티티 추출 → 그래프 구축 → 커뮤니티 탐지 → 요약)를 설명할 수 있다"
+prerequisites:
+  - "RAG(Retrieval-Augmented Generation) 기본 개념"
+  - "그래프 이론 기초 (노드, 엣지, 커뮤니티)"
+estimated_minutes: 35
+references:
+  - title: "Edge et al. 2024 — From Local to Global: A Graph RAG Approach (arXiv:2404.16130)"
+    url: "https://arxiv.org/abs/2404.16130"
+  - title: "Microsoft — GraphRAG GitHub 저장소"
+    url: "https://github.com/microsoft/graphrag"
+  - title: "Microsoft Research Blog — GraphRAG: Unlocking LLM discovery on narrative private data"
+    url: "https://www.microsoft.com/en-us/research/blog/graphrag-unlocking-llm-discovery-on-narrative-private-data/"
+---
+
+import Mermaid from '../../../components/learning/Mermaid.tsx';
+
+RAG(Retrieval-Augmented Generation)는 LLM에게 외부 문서를 검색해 컨텍스트로 제공함으로써 환각을 줄이는 패턴이다. 그러나 전통적인 벡터 유사도 기반 RAG(Naive RAG)는 코퍼스 전체에 걸친 글로벌 질문에 취약하다. GraphRAG는 Microsoft Research에서 제안한 접근법으로, 지식그래프와 커뮤니티 요약을 통해 이 한계를 해결한다.
+
+## Naive RAG의 한계
+
+Naive RAG의 기본 흐름은 다음과 같다. 문서를 고정 크기 청크로 분할하고, 각 청크를 임베딩 벡터로 변환해 벡터 DB에 저장한다. 질의가 들어오면 질의 임베딩과 가장 유사한 청크 k개를 검색해 LLM에 프롬프트로 제공한다.
+
+이 방식은 두 가지 구조적 문제를 가진다.
+
+**문제 1. 글로벌 컨텍스트 손실:** "이 문서 전체에서 가장 중요한 주제는 무엇인가?"처럼 전체 코퍼스를 종합해야 하는 질문에 답하려면 수천 개의 청크를 모두 참조해야 한다. 벡터 유사도 검색은 질의와 직접 유사한 청크만 반환하므로, 큰 그림을 파악하지 못한다.
+
+**문제 2. 단편적 연결 손실:** 서로 다른 문서에 있는 정보가 의미적으로 연결되어 있어도, 개별 청크 단위 검색은 이 연결을 포착하지 못한다. 인물 A가 문서 1에서 언급되고, 같은 인물이 문서 5에서 다른 맥락으로 등장해도 두 청크가 함께 검색되지 않을 수 있다.
+
+## GraphRAG 파이프라인
+
+GraphRAG는 인덱싱(오프라인)과 질의(온라인) 두 단계로 나뉜다.
+
+<Mermaid client:load chart={`graph LR
+    A[원본 문서] --> B[청크 분할]
+    B --> C[LLM 엔티티·관계 추출]
+    C --> D[지식그래프 구축]
+    D --> E[커뮤니티 탐지 Leiden 알고리즘]
+    E --> F[커뮤니티별 요약 생성]
+    F --> G[커뮤니티 요약 인덱스]
+    D --> H[엔티티 임베딩 인덱스]
+    G --> I{질의 유형}
+    H --> I
+    I -->|글로벌 질의| J[Global Search]
+    I -->|로컬 질의| K[Local Search]
+    J --> L[LLM 최종 답변]
+    K --> L
+`} />
+
+### 인덱싱 단계
+
+**1. 텍스트 청크 분할:** 원본 문서를 토큰 기준으로 청크로 나눈다. 청크 크기는 LLM 컨텍스트 창과 정보 밀도에 따라 조정한다.
+
+**2. 엔티티·관계 추출:** 각 청크에 LLM을 실행해 엔티티(인물, 조직, 장소, 개념)와 엔티티 간 관계를 추출한다. 추출 프롬프트는 도메인에 맞게 커스터마이즈할 수 있다.
+
+**3. 지식그래프 구축:** 추출된 엔티티·관계로 그래프를 구성한다. 같은 엔티티가 여러 청크에서 등장하면 하나의 노드로 병합한다. 각 엔티티 노드에는 설명 텍스트가 함께 저장된다.
+
+**4. 커뮤니티 탐지:** Leiden 알고리즘으로 그래프를 밀집 연결된 하위 그룹(커뮤니티)으로 분할한다. 커뮤니티는 계층적으로 구성되며, 상위 커뮤니티는 하위 커뮤니티를 포함한다.
+
+**5. 커뮤니티 요약 생성:** 각 커뮤니티에 속한 엔티티·관계 정보를 LLM으로 요약한다. 이 요약이 Global Search의 핵심 재료가 된다.
+
+### 질의 단계: Global Search
+
+"이 코퍼스의 주요 주제는 무엇인가?" 같은 글로벌 질문에 사용한다.
+
+1. 모든 커뮤니티 요약을 가져온다.
+2. 각 커뮤니티 요약에 LLM을 실행해 질의와 관련된 부분 답변(partial answer)을 생성한다.
+3. 부분 답변들을 다시 LLM으로 집계해 최종 답변을 생성한다.
+
+이 방식은 전체 코퍼스의 구조적 정보를 활용하므로 Naive RAG가 놓치는 글로벌 패턴을 포착할 수 있다. 단, LLM 호출 횟수가 많아 비용이 높다.
+
+### 질의 단계: Local Search
+
+"스티브 잡스와 애플의 관계는?" 같은 특정 엔티티 중심 질문에 사용한다.
+
+1. 질의에서 관련 엔티티를 식별한다 (엔티티 임베딩 유사도 검색).
+2. 해당 엔티티와 연결된 이웃 엔티티, 관계, 소속 커뮤니티 요약, 원본 텍스트 청크를 수집한다.
+3. 수집된 컨텍스트로 LLM이 답변을 생성한다.
+
+Local Search는 Global Search보다 LLM 호출이 적어 비용 효율적이다.
+
+## Naive RAG vs GraphRAG 비교
+
+| 항목 | Naive RAG | GraphRAG Local | GraphRAG Global |
+|------|-----------|---------------|-----------------|
+| 검색 단위 | 텍스트 청크 | 엔티티 + 이웃 + 청크 | 커뮤니티 요약 |
+| 글로벌 질의 | 취약 | 제한적 | 강함 |
+| 로컬 질의 | 보통 | 강함 | 과도한 비용 |
+| LLM 호출 수 | 낮음 | 중간 | 높음 |
+| 인덱싱 비용 | 낮음 | 높음 | 높음 |
+| 다중 홉 추론 | 취약 | 보통 | 보통 |
+
+## Microsoft GraphRAG 구현
+
+Microsoft는 GraphRAG를 오픈소스로 공개했다(MIT 라이선스, GitHub: microsoft/graphrag). Python 패키지로 설치해 사용할 수 있다.
+
+```bash
+pip install graphrag
+# 인덱싱 실행
+python -m graphrag.index --root ./my_project
+# 질의 실행
+python -m graphrag.query --root ./my_project --method global "주요 주제는 무엇인가?"
+```
+
+설정 파일(settings.yaml)에서 LLM 모델, 청크 크기, 커뮤니티 레벨, 임베딩 모델을 지정한다.
+
+## 한계와 고려 사항
+
+**비용:** 인덱싱 단계에서 모든 청크에 LLM을 실행해 엔티티·관계를 추출하므로 Naive RAG 대비 인덱싱 비용이 크게 높다. 대규모 코퍼스에서는 수십~수백 달러의 API 비용이 발생할 수 있다.
+
+**동적 데이터:** 문서가 자주 변경되면 그래프와 커뮤니티 요약을 재생성해야 한다. 정적이거나 변경이 드문 코퍼스에 적합하다.
+
+**엔티티 추출 품질:** LLM 기반 추출은 도메인 특화 용어나 약어에 오류가 있을 수 있다. 추출 프롬프트 튜닝이 품질에 결정적 영향을 미친다.
+
+**구조화된 온톨로지와의 결합:** GraphRAG의 그래프는 LLM이 자동 추출한 비정형 그래프다. 도메인 온톨로지(OWL)로 엔티티 타입과 관계 유형을 미리 정의하고 추출 프롬프트에 반영하면 품질이 높아진다. 이를 Ontology-guided GraphRAG라고 부른다 (8-4 챕터 참조).

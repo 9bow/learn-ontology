@@ -1,0 +1,297 @@
+---
+title: "6-3. Functions, Pipelines, Workshop"
+description: "Palantir Foundry의 세 가지 응용 레이어—Functions(로직), Pipelines(데이터 변환), Workshop(UI)—가 Ontology와 어떻게 통합되는지 학습합니다."
+sidebar:
+  order: 63
+learning_objectives:
+  - "Foundry Functions가 Ontology 위에서 복잡한 비즈니스 로직을 구현하는 방식을 이해한다"
+  - "Pipelines가 원천 데이터를 Object Type으로 변환하는 과정을 설명한다"
+  - "Workshop으로 Ontology 기반 운영 대시보드를 구성하는 패턴을 파악한다"
+  - "세 레이어가 함께 동작하는 end-to-end 시나리오를 추적한다"
+prerequisites:
+  - "6-1: Foundry Ontology의 3대 축"
+  - "6-2: 메타모델 심층 분석"
+estimated_minutes: 30
+references:
+  - title: "Palantir. Foundry Functions Documentation (2024)"
+    url: "https://www.palantir.com/docs/foundry/functions/overview/"
+  - title: "Palantir. Foundry Pipeline Builder Documentation (2024)"
+    url: "https://www.palantir.com/docs/foundry/pipeline-builder/overview/"
+  - title: "Palantir. Workshop Documentation (2024)"
+    url: "https://www.palantir.com/docs/foundry/workshop/overview/"
+  - title: "Palantir. AIPCon Keynote — Ontology-Driven Operations (2023)"
+    url: "https://www.palantir.com/aipcon/"
+---
+
+## Ontology를 중심으로 한 세 레이어
+
+Foundry Ontology는 데이터와 응용 사이의 의미론적 레이어입니다. 그 위아래로 세 가지 응용 레이어가 연결됩니다.
+
+```
+원천 데이터 (데이터베이스, 파일, API)
+        ↓
+  [Pipelines] — 데이터 변환·통합
+        ↓
+  [Ontology] — Object·Link·Action 정의
+        ↑↓
+  [Functions] — 복잡한 비즈니스 로직
+        ↓
+  [Workshop] — 운영 UI·대시보드
+        ↓
+최종 사용자 (운영 담당자, 분석가, 의사결정자)
+```
+
+각 레이어는 독립적으로 개발하고 배포할 수 있지만, Ontology를 공유 인터페이스로 삼아 긴밀히 통합됩니다.
+
+---
+
+## Pipelines: 원천 데이터 → Ontology
+
+### 역할
+
+Pipeline은 원천 데이터를 Ontology가 기대하는 형식으로 변환합니다. SQL, Python, Spark를 지원하며, 변환 결과가 Object Type의 데이터소스가 됩니다.
+
+### Pipeline 유형
+
+**Code Repository (Python/Spark)**
+
+```python
+# 항공기 데이터 변환 Pipeline 예시
+from transforms.api import transform, Input, Output
+
+@transform(
+    output=Output("/ontology/datasets/aircraft_registry"),
+    raw_data=Input("/raw/avionics/aircraft_master"),
+    maintenance_log=Input("/raw/maintenance/log_v3"),
+)
+def compute(raw_data, maintenance_log, output):
+    aircraft = raw_data.dataframe()
+    maintenance = maintenance_log.dataframe()
+
+    # 최근 정비일 계산
+    last_maint = (
+        maintenance
+        .groupBy("aircraft_id")
+        .agg({"maintenance_date": "max"})
+        .withColumnRenamed("max(maintenance_date)", "last_maintenance_date")
+    )
+
+    result = aircraft.join(last_maint, on="aircraft_id", how="left")
+
+    output.write_dataframe(result)
+```
+
+**Pipeline Builder (GUI 기반 SQL 변환)**
+
+비개발자도 드래그앤드롭으로 데이터 변환을 구성할 수 있습니다. 내부적으로 Spark SQL로 컴파일됩니다.
+
+### 스케줄과 증분 처리
+
+```
+Pipeline 스케줄:
+├── 일괄(Batch): 매일 오전 2시
+├── 스트리밍: Kafka 연동 실시간
+└── 트리거: 상위 데이터셋 변경 시 자동
+
+증분 처리:
+├── 전체 재계산: 데이터 변경이 적을 때
+└── 증분(Incremental): 변경분만 처리 (대용량)
+```
+
+Object Type은 데이터소스 데이터셋이 업데이트되면 자동으로 최신 상태를 반영합니다.
+
+---
+
+## Functions: Ontology 위의 비즈니스 로직
+
+### 역할
+
+Functions는 TypeScript로 작성하는 서버리스 비즈니스 로직 레이어입니다. Ontology의 Object와 Link에 직접 접근하고, Action Type의 Effect로 호출할 수 있습니다.
+
+### 기본 구조
+
+```typescript
+import { Function, OntologyObjectSet } from "@foundry/functions-api";
+import { Objects } from "@foundry/ontology-runtime";
+
+export class MaintenanceOptimizer {
+  // 특정 항공기의 지연된 정비 작업 수 반환
+  @Function()
+  public async getDelayedTaskCount(
+    aircraftId: string
+  ): Promise<number> {
+    const tasks = await Objects.search()
+      .MaintenanceTask()
+      .filter(task => task.aircraftId.exactMatch(aircraftId))
+      .filter(task => task.status.exactMatch("Delayed"))
+      .all();
+
+    return tasks.length;
+  }
+
+  // 우선순위 기준으로 정비 일정 재배치 권고
+  @Function()
+  public async suggestReschedule(
+    aircraft: Objects.Aircraft
+  ): Promise<Objects.MaintenanceTask[]> {
+    const tasks = await aircraft.maintenanceTasks.all();
+
+    // 지연된 작업을 우선순위·심각도 기준 정렬
+    return tasks
+      .filter(t => t.status === "Delayed")
+      .sort((a, b) => {
+        const priorityOrder = { Critical: 0, High: 1, Medium: 2, Low: 3 };
+        return priorityOrder[a.priority] - priorityOrder[b.priority];
+      });
+  }
+}
+```
+
+### Action Type에서 Function 호출
+
+```
+Action Type: OptimizeMaintenanceSchedule
+├── parameters:
+│   └── airline: Airline (Object 선택)
+├── effects:
+│   └── callFunction: MaintenanceOptimizer.suggestReschedule
+│       → 결과를 Workshop 위젯에 표시
+└── permissions: FleetManager 역할 이상
+```
+
+### Function의 장점
+
+- **타입 안전**: TypeScript + 자동 생성된 Ontology 타입
+- **Ontology 인식**: Object·Link를 직접 조회, SQL 작성 불필요
+- **재사용**: Workshop 위젯, Action, AIP 에이전트에서 동일 Function 호출
+- **테스트 가능**: 로컬 단위 테스트, 모킹 지원
+
+---
+
+## Workshop: Ontology 기반 운영 UI
+
+### 역할
+
+Workshop은 코드 없이 Ontology 기반 운영 대시보드를 구성하는 노코드 도구입니다. 비개발자(운영 담당자, 분석가)가 직접 UI를 구성할 수 있습니다.
+
+### 핵심 위젯 유형
+
+| 위젯 | 역할 | Ontology 연결 |
+|---|---|---|
+| Object Table | Object 목록 표시 | Object Type + 필터 |
+| Object Detail | 단일 Object 상세 | Object 속성·Link |
+| Action Form | Action 실행 폼 | Action Type |
+| Chart | 집계 시각화 | Object Type 집계 |
+| Map | 지리 시각화 | geoshape 속성 |
+| Timeline | 시계열 시각화 | timestamp 속성 |
+| Function Widget | Function 결과 표시 | Function 반환값 |
+
+### 대시보드 구성 예시
+
+**항공 정비 운영 대시보드:**
+
+```
+┌─────────────────────────────────────────────┐
+│  항공 정비 운영 센터                          │
+├──────────────┬──────────────────────────────┤
+│ 요약 지표    │ 항공기 현황 맵                  │
+│ ───────────  │ [Map 위젯: Aircraft.location]  │
+│ 전체: 142대  │                               │
+│ 정비중: 8대  │                               │
+│ 지연: 3건   │                               │
+├──────────────┴──────────────────────────────┤
+│ 지연된 정비 작업 목록                         │
+│ [Object Table: MaintenanceTask              │
+│   filter: status == "Delayed"               │
+│   columns: aircraft, task_type, delay_days] │
+├─────────────────────────────────────────────┤
+│ 선택된 작업 상세 / 일정 변경 [Action Form]    │
+└─────────────────────────────────────────────┘
+```
+
+### 컨텍스트 연결 (Object Drilldown)
+
+Workshop의 강점은 위젯 간 컨텍스트 연결입니다.
+
+```
+사용자가 Object Table에서 항공기 행 클릭
+    ↓
+오른쪽 패널에 해당 Aircraft Object 상세 표시
+    ↓
+하단에 해당 Aircraft의 MaintenanceTask 목록 표시
+    ↓
+특정 Task 선택 → Action Form 활성화
+    ↓
+"일정 변경" 버튼 클릭 → Action Type 실행
+```
+
+이 드릴다운 흐름은 코드 없이 Widget 설정만으로 구성합니다. 연결 고리는 Link Type이 정의한 관계입니다.
+
+---
+
+## End-to-End 시나리오: 정비 최적화
+
+세 레이어가 함께 동작하는 전체 흐름을 추적합니다.
+
+### 데이터 흐름
+
+```
+1. [Pipeline] 매일 오전 2시
+   항공기 운행 데이터 (원천) 
+   → 정비 필요 예측 모델 실행
+   → MaintenanceTask 데이터셋 업데이트
+
+2. [Ontology] 데이터셋 업데이트 반영
+   MaintenanceTask Object Type 자동 갱신
+   Aircraft ↔ MaintenanceTask Link 재구성
+
+3. [Function] 운영자 요청 시
+   MaintenanceOptimizer.suggestReschedule() 실행
+   → 우선순위 정렬된 작업 목록 반환
+
+4. [Workshop] 운영 대시보드
+   지연 작업 목록 표시
+   운영자가 Action Form으로 일정 조정
+   → RescheduleMaintenanceTask Action 실행
+
+5. [Ontology → Pipeline] 변경 반전
+   Action 실행 → Object 업데이트
+   → 다운스트림 Pipeline 트리거
+   → 보고서·알림 생성
+```
+
+---
+
+## 개발자 경험과 SDK
+
+Foundry는 Functions 개발을 위한 TypeScript SDK를 제공합니다.
+
+```bash
+# Foundry CLI 설치 및 프로젝트 초기화
+npm install -g @foundry/cli
+foundry functions init my-project
+cd my-project
+
+# 로컬 개발 환경에서 Ontology 타입 자동 생성
+foundry ontology generate-types
+
+# 단위 테스트 실행
+npm test
+
+# Foundry에 배포
+foundry functions deploy
+```
+
+자동 생성된 타입은 Object Type의 모든 속성과 Link를 TypeScript 인터페이스로 노출합니다. IDE에서 자동 완성이 동작합니다.
+
+---
+
+## 정리
+
+Foundry의 세 응용 레이어는 Ontology를 중심으로 통합됩니다.
+
+- **Pipelines** 는 원천 데이터를 Object Type 형식으로 변환·적재합니다
+- **Functions** 는 TypeScript로 복잡한 비즈니스 로직을 구현하고 Ontology 객체에 직접 접근합니다
+- **Workshop** 은 코드 없이 Ontology 기반 운영 UI를 구성합니다
+
+세 레이어를 조합하면 데이터 수집부터 분석·운영까지 일관된 의미론적 모델 위에서 처리됩니다. 다음 챕터에서는 이 Ontology 위에 LLM 에이전트를 안전하게 구축하는 AIP를 다룹니다.

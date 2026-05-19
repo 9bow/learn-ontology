@@ -1,0 +1,235 @@
+---
+title: "SKOS와 시소러스 표현"
+description: "W3C SKOS(Simple Knowledge Organization System)로 시소러스, 분류체계, 통제 어휘를 RDF로 표현하는 방법을 학습합니다."
+sidebar:
+  order: 5
+learning_objectives:
+  - SKOS의 핵심 개념(Concept, ConceptScheme, 계층 관계, 연관 관계)을 설명할 수 있다
+  - skos:broader, skos:narrower, skos:related의 의미와 차이를 구분한다
+  - 기존 시소러스를 SKOS로 변환하는 기본 패턴을 이해한다
+  - SKOS와 OWL 온톨로지를 함께 사용하는 방식을 설명할 수 있다
+prerequisites:
+  - "3-2-rdfs"
+estimated_minutes: 30
+references:
+  - title: "W3C SKOS Simple Knowledge Organization System Reference"
+    url: "https://www.w3.org/TR/skos-reference/"
+  - title: "W3C SKOS Simple Knowledge Organization System Primer"
+    url: "https://www.w3.org/TR/skos-primer/"
+  - title: "Miles, A. & Bechhofer, S. (2009). SKOS Simple Knowledge Organization System Reference. W3C Recommendation"
+    url: "https://www.w3.org/TR/skos-reference/"
+  - title: "Isaac, A. & Summers, E. (2009). SKOS Simple Knowledge Organization System Primer. W3C Working Group Note"
+    url: "https://www.w3.org/TR/skos-primer/"
+---
+
+## SKOS란 무엇인가
+
+도서관, 정부기관, 연구기관에는 수십 년간 축적된 시소러스와 통제 어휘(controlled vocabulary)가 있습니다. MeSH(의학 주제 표목), EuroVoc(유럽연합 다국어 시소러스), 국립국어원 표준국어대사전 관련어 등이 그 예입니다. 이 자산을 링크드 데이터 생태계에서 활용하려면 표준화된 방식이 필요했습니다.
+
+**SKOS(Simple Knowledge Organization System)** 는 이 목적을 위한 W3C 권고안(2009)입니다. SKOS는 분류체계(taxonomy), 시소러스(thesaurus), 분류표(classification scheme), 통제 어휘를 RDF로 표현하는 표준 어휘를 제공합니다.
+
+SKOS는 OWL보다 **가볍습니다.** 형식 추론이 목적이 아니라, **인간이 조직한 지식 구조를 기계가 접근할 수 있게 만드는 것**이 목적입니다.
+
+---
+
+## SKOS의 핵심 개념
+
+### skos:Concept
+
+SKOS에서 지식의 기본 단위는 **Concept(개념)** 입니다. OWL의 `owl:Class`나 `owl:Individual`과 다른 독자적인 개념입니다. Concept는 하나의 지식 조각 — 주제, 범주, 개념 — 을 나타냅니다.
+
+```turtle
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix : <http://vocab.example.org/> .
+
+:Penicillin rdf:type skos:Concept ;
+    skos:prefLabel "페니실린"@ko ;        # 선호 레이블 (언어당 하나)
+    skos:prefLabel "Penicillin"@en ;
+    skos:altLabel "PCN"@en ;              # 대체 레이블 (동의어, 약어)
+    skos:altLabel "페니실린계 항생제"@ko ;
+    skos:hiddenLabel "penicilin"@en ;     # 숨김 레이블 (오탈자 포함)
+    skos:definition "그람 양성균에 효과적인 베타-락탐 항생제"@ko ;
+    skos:notation "J01CE" .              # 분류 코드 (ATC 코드)
+```
+
+**skos:prefLabel** — 언어별로 정확히 하나만 허용됩니다. 이 레이블이 해당 언어에서의 '공식' 명칭입니다.
+
+**skos:altLabel** — 동의어, 약어, 비선호 용어 등 여러 개 허용됩니다.
+
+**skos:hiddenLabel** — 검색에서는 사용하지만 표시하지 않는 레이블입니다 (오탈자, 옛 표기 등).
+
+### skos:ConceptScheme
+
+여러 Concept의 집합을 하나의 어휘 체계로 묶는 컨테이너입니다.
+
+```turtle
+:MedicalDrugVocabulary rdf:type skos:ConceptScheme ;
+    skos:prefLabel "의약품 통제 어휘"@ko ;
+    dct:creator "한국의약정보원" ;
+    dct:created "2020-01-01"^^xsd:date ;
+    dct:description "ATC 분류 기반 의약품 용어 체계"@ko .
+
+:Penicillin skos:inScheme :MedicalDrugVocabulary ;
+            skos:topConceptOf :MedicalDrugVocabulary .  # 최상위 개념
+
+:MedicalDrugVocabulary skos:hasTopConcept :Antibiotic .
+```
+
+---
+
+## 계층 관계: broader와 narrower
+
+```turtle
+# 상위-하위 관계
+:Antibiotic rdf:type skos:Concept ;
+    skos:prefLabel "항생제"@ko ;
+    skos:inScheme :MedicalDrugVocabulary .
+
+:BetaLactam rdf:type skos:Concept ;
+    skos:prefLabel "베타-락탐 항생제"@ko ;
+    skos:broader :Antibiotic ;       # 상위 개념: 항생제
+    skos:inScheme :MedicalDrugVocabulary .
+
+:Penicillin rdf:type skos:Concept ;
+    skos:prefLabel "페니실린"@ko ;
+    skos:broader :BetaLactam ;       # 상위 개념: 베타-락탐
+    skos:narrower :Amoxicillin ;     # 하위 개념: 아목시실린
+    skos:narrower :Ampicillin ;
+    skos:inScheme :MedicalDrugVocabulary .
+
+:Amoxicillin rdf:type skos:Concept ;
+    skos:prefLabel "아목시실린"@ko ;
+    skos:broader :Penicillin .
+```
+
+SKOS 명세는 `skos:broader`와 `skos:narrower`가 **역관계**임을 정의합니다. 한쪽만 선언하면 다른 쪽이 자동 도출됩니다. 그러나 **추이성은 기본적으로 보장하지 않습니다.** 추이적 계층이 필요하면 `skos:broaderTransitive`를 사용합니다.
+
+```turtle
+# 추이적 계층 관계
+:Amoxicillin skos:broaderTransitive :BetaLactam ;   # Amoxicillin → BetaLactam → Antibiotic
+             skos:broaderTransitive :Antibiotic .    # 명시 또는 추론으로 도출
+```
+
+---
+
+## 연관 관계: skos:related
+
+계층 관계가 아닌 **수평적 연관**을 표현합니다.
+
+```turtle
+:Penicillin skos:related :AllergyReaction .  # 페니실린과 알레르기 반응은 관련 있음
+:Infection skos:related :Antibiotic .
+
+# skos:related는 대칭(symmetric)
+# :Antibiotic skos:related :Infection 도 성립
+```
+
+---
+
+## 개념 간 매핑
+
+서로 다른 어휘 체계의 개념을 연결합니다. 이것이 SKOS가 링크드 데이터에서 특히 강력한 이유입니다.
+
+```turtle
+# 매핑 관계 (강도에 따라 선택)
+:Penicillin
+    skos:exactMatch <http://id.nlm.nih.gov/mesh/D010406> ;  # MeSH 완전 일치
+    skos:closeMatch <http://www.wikidata.org/entity/Q403> ;  # Wikidata 근사 일치
+    skos:broadMatch <http://id.nlm.nih.gov/mesh/D000900> ;  # MeSH 상위 개념 일치
+    skos:narrowMatch <http://example.org/drug/Amoxicillin> ; # 하위 개념 일치
+    skos:relatedMatch <http://id.nlm.nih.gov/mesh/D000287> . # 관련 개념 일치
+```
+
+| 매핑 관계 | 의미 |
+|---------|------|
+| `skos:exactMatch` | 두 개념이 정확히 동일 (상호 대체 가능) |
+| `skos:closeMatch` | 매우 유사하지만 완전히 동일하지는 않음 |
+| `skos:broadMatch` | 매핑 대상이 더 광범위한 개념 |
+| `skos:narrowMatch` | 매핑 대상이 더 좁은 개념 |
+| `skos:relatedMatch` | 관련 있지만 계층 관계는 없음 |
+
+---
+
+## SKOS와 OWL의 통합
+
+SKOS와 OWL은 서로 다른 목적으로 설계됐지만 함께 사용할 수 있습니다.
+
+```turtle
+# OWL 클래스와 SKOS 개념 연결
+:Drug rdf:type owl:Class .
+
+:DrugConcept rdf:type skos:Concept ;
+    skos:prefLabel "의약품"@ko ;
+    skos:exactMatch :Drug .  # OWL 클래스와 SKOS 개념 연결
+
+# 또는 직접 두 어휘 혼합
+:Penicillin rdf:type owl:NamedIndividual ,
+                     skos:Concept ;
+            skos:prefLabel "페니실린"@ko ;
+            rdf:type :Antibiotic .  # OWL 클래스 분류
+```
+
+**일반 가이드라인:**
+- 형식 추론이 필요한 도메인 모델 → OWL
+- 통제 어휘, 태깅, 검색 향상 → SKOS
+- 두 가지 모두 필요한 경우 → 혼합 사용 (단, 의미 충돌 주의)
+
+---
+
+## 실제 SKOS 사례
+
+### EuroVoc
+
+유럽연합의 다국어(27개 언어) 시소러스. 7,000개 이상의 개념, 21개 분야. 유럽의회 문서 색인에 사용됩니다.
+
+```
+https://op.europa.eu/o/opportal-service/euvoc/download-notice?notice-id=EuroVoc
+```
+
+### UNESCO 시소러스
+
+교육·과학·문화 분야 시소러스. SKOS 형식 공개 배포.
+
+### 국립중앙도서관 주제명 표목
+
+한국 국립중앙도서관의 주제명 표목(Subject Heading) 일부가 SKOS로 공개되어 있습니다.
+
+---
+
+## SKOS 완전 예시: 의약품 어휘
+
+```turtle
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix dct:  <http://purl.org/dc/terms/> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix drug: <http://vocab.example.org/drug/> .
+
+drug:Scheme rdf:type skos:ConceptScheme ;
+    skos:prefLabel "항생제 분류 어휘"@ko ;
+    dct:created "2024-01-01"^^xsd:date ;
+    skos:hasTopConcept drug:Antibiotic .
+
+drug:Antibiotic rdf:type skos:Concept ;
+    skos:prefLabel "항생제"@ko , "Antibiotic"@en ;
+    skos:definition "세균을 죽이거나 성장을 억제하는 약물"@ko ;
+    skos:narrower drug:BetaLactam , drug:Macrolide ;
+    skos:inScheme drug:Scheme ;
+    skos:topConceptOf drug:Scheme .
+
+drug:BetaLactam rdf:type skos:Concept ;
+    skos:prefLabel "베타-락탐계"@ko , "Beta-lactam"@en ;
+    skos:altLabel "β-lactam"@en ;
+    skos:broader drug:Antibiotic ;
+    skos:narrower drug:Penicillin , drug:Cephalosporin ;
+    skos:inScheme drug:Scheme .
+
+drug:Penicillin rdf:type skos:Concept ;
+    skos:prefLabel "페니실린"@ko , "Penicillin"@en ;
+    skos:notation "J01C" ;
+    skos:broader drug:BetaLactam ;
+    skos:related drug:AllergyRisk ;
+    skos:exactMatch <http://id.nlm.nih.gov/mesh/D010406> ;
+    skos:inScheme drug:Scheme .
+```
+
+다음 챕터에서는 RDF의 최신 확장인 RDF-star와 Named Graph를 학습합니다.

@@ -1,0 +1,262 @@
+---
+title: "6-4. AIP × Ontology — 안전한 LLM 에이전트"
+description: "Palantir AIP(Artificial Intelligence Platform)가 Ontology를 활용해 LLM 에이전트의 환각·권한 이탈·감사 불가 문제를 해결하는 아키텍처를 학습합니다."
+sidebar:
+  order: 64
+learning_objectives:
+  - "AIP Logic의 Ontology 기반 에이전트 아키텍처를 설명한다"
+  - "Ontology가 LLM 에이전트의 세 가지 안전 문제를 해결하는 원리를 이해한다"
+  - "AIPCon에서 공개된 에이전트 설계 패턴을 파악한다"
+  - "Ontology 없이 LLM을 직접 연동할 때의 위험과 비교한다"
+prerequisites:
+  - "6-1: Foundry Ontology의 3대 축"
+  - "6-3: Functions, Pipelines, Workshop"
+  - "LLM과 RAG 기본 개념"
+estimated_minutes: 33
+references:
+  - title: "Palantir. AIPCon — Safe AI Agents with Ontology (2023)"
+    url: "https://www.palantir.com/aipcon/"
+  - title: "Palantir. AIP Documentation — AIP Logic (2024)"
+    url: "https://www.palantir.com/docs/foundry/aip-logic/overview/"
+  - title: "Palantir. AIP Documentation — Agents (2024)"
+    url: "https://www.palantir.com/docs/foundry/agents/overview/"
+  - title: "Palantir Technologies. Form 10-K Annual Report. SEC EDGAR (2024)"
+    url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001321655"
+---
+
+## LLM 에이전트의 세 가지 위험
+
+LLM을 기업 데이터에 직접 연결하면 세 가지 구조적 위험이 발생합니다.
+
+**위험 1: 환각(Hallucination)**
+LLM은 실제 데이터가 없어도 그럴듯한 답변을 생성합니다. "3월 항공기 A의 정비 비용은 얼마인가?"라는 질문에 실제 데이터 없이 숫자를 만들어낼 수 있습니다.
+
+**위험 2: 권한 이탈(Authorization Bypass)**
+자연어 지시로 LLM이 사용자가 접근 권한이 없는 데이터를 조회하거나 수정할 수 있습니다. 프롬프트 인젝션 공격의 일환으로 의도적으로 악용될 수도 있습니다.
+
+**위험 3: 감사 불가(Non-Auditability)**
+LLM이 실행한 작업의 이유와 경로를 추적하기 어렵습니다. 규제 산업에서는 "왜 이 결정을 내렸는가"를 증명해야 합니다.
+
+Palantir AIP는 Ontology를 통해 이 세 문제를 구조적으로 해결하는 접근을 제시합니다.
+
+---
+
+## AIP 아키텍처 개요
+
+AIP(Artificial Intelligence Platform)는 Foundry 위에 구축된 LLM 에이전트 플랫폼입니다. 핵심 컴포넌트:
+
+```
+사용자 자연어 입력
+        ↓
+   [AIP Logic]
+   ├── LLM (GPT-4, Claude 등)
+   ├── Ontology Tool Definitions
+   └── 컨텍스트 주입 (Ontology 데이터)
+        ↓
+   [Tool Calls]
+   ├── Object 조회 (읽기)
+   ├── Function 실행 (계산)
+   └── Action 실행 (쓰기)
+        ↓
+   [Ontology 레이어]
+   ├── 권한 검사 (사용자 역할)
+   ├── 검증 규칙 실행
+   └── 감사 로그 기록
+        ↓
+   실제 데이터 변경 또는 응답 반환
+```
+
+---
+
+## Ontology가 세 위험을 해결하는 방법
+
+### 해결 1: 환각 방지 — Ontology 기반 컨텍스트
+
+LLM에 원시 데이터를 직접 주입하는 대신, AIP는 Ontology Object를 구조화된 컨텍스트로 제공합니다.
+
+**직접 연결 방식 (위험):**
+```
+프롬프트: "항공기 A의 상태를 알려줘"
+LLM 응답: "항공기 A는 현재 정상 운항 중입니다" (데이터 없이 생성)
+```
+
+**AIP + Ontology 방식 (안전):**
+```
+1. AIP가 "항공기 A" → Aircraft Object 조회
+2. Object의 실제 속성을 컨텍스트로 주입:
+   {status: "Maintenance", last_flight: "2024-03-10", ...}
+3. LLM이 실제 데이터를 기반으로 응답 생성
+4. 데이터 없는 필드는 "데이터 없음"으로 명시
+```
+
+LLM은 자유롭게 답변을 생성하는 것이 아니라 Ontology가 제공한 데이터를 해석·요약하는 역할로 제한됩니다.
+
+### 해결 2: 권한 이탈 방지 — Action Type 게이트
+
+LLM이 직접 데이터베이스를 수정하는 것이 아니라, 반드시 Action Type을 통해서만 변경이 이루어집니다.
+
+```
+LLM 요청: "항공기 A의 정비 일정을 다음 주로 변경해줘"
+         ↓
+AIP Logic: RescheduleMaintenanceTask Action 식별
+         ↓
+Action Type 검증:
+├── currentUser.role == "MaintenanceManager"? → NO
+└── 권한 없음 → 실행 거부, 사용자에게 권한 오류 반환
+
+(권한 있는 사용자라면)
+├── 파라미터 검증 통과
+└── 실제 Object 업데이트 실행
+```
+
+LLM이 "권한 우회"를 시도하는 프롬프트를 받아도, 실행 레이어가 Action Type의 권한 검사를 반드시 통과해야 합니다.
+
+### 해결 3: 감사 가능성 — 구조화된 추적
+
+모든 AIP 에이전트 실행은 세 계층의 로그를 생성합니다.
+
+```
+계층 1: LLM 대화 로그
+├── 사용자 입력 전문
+├── LLM이 선택한 Tool Call
+└── LLM 최종 응답
+
+계층 2: Tool 실행 로그
+├── 어떤 Object를 조회했는가
+├── 어떤 Function을 실행했는가
+└── 어떤 Action을 요청했는가
+
+계층 3: Ontology 감사 로그
+├── Action 실행 사용자·시간
+├── 변경 전/후 값
+└── 검증 결과
+```
+
+규제 감사 시 "AI가 왜 이 결정을 내렸는가"를 세 계층의 로그로 재구성할 수 있습니다.
+
+---
+
+## AIP Logic: 에이전트 구성
+
+AIP Logic은 에이전트의 동작을 정의하는 노코드/로코드 환경입니다.
+
+### Tool 정의
+
+에이전트가 사용할 수 있는 도구를 Ontology 요소로 선언합니다.
+
+```yaml
+# AIP Logic Tool 정의 (개념적 표현)
+tools:
+  - name: getAircraftStatus
+    type: ObjectQuery
+    objectType: Aircraft
+    description: "항공기의 현재 상태와 최근 정비 이력을 조회합니다"
+    parameters:
+      - name: aircraftId
+        type: string
+        required: true
+
+  - name: getDelayedTasks
+    type: FunctionCall
+    function: MaintenanceOptimizer.suggestReschedule
+    description: "지연된 정비 작업 목록을 우선순위 순으로 반환합니다"
+
+  - name: rescheduleTask
+    type: ActionExecution
+    actionType: RescheduleMaintenanceTask
+    description: "정비 작업의 일정을 변경합니다. 관리자 권한 필요."
+    requiresConfirmation: true
+```
+
+`requiresConfirmation: true`는 실행 전 사용자 확인을 강제하는 안전 장치입니다.
+
+### 시스템 프롬프트와 Ontology
+
+AIP Logic은 시스템 프롬프트에 Ontology 컨텍스트를 자동으로 포함합니다.
+
+```
+시스템 프롬프트 (자동 구성):
+"당신은 항공 정비 운영 보조 에이전트입니다.
+현재 사용자: [이름], 역할: [MaintenanceSupervisor]
+접근 가능한 항공기: [권한에 따라 필터된 목록]
+사용 가능한 도구: [getAircraftStatus, getDelayedTasks, rescheduleTask]
+
+규칙:
+- 도구를 통해서만 데이터에 접근하세요
+- 데이터가 없는 경우 추측하지 마세요
+- 일정 변경 전 반드시 사용자 확인을 받으세요"
+```
+
+---
+
+## 실제 에이전트 대화 흐름
+
+```
+사용자: "오늘 출발 예정인 항공기 중 정비가 미뤄진 게 있어?"
+
+AIP Logic:
+1. getDelayedTasks() 호출
+2. 반환: [TASK-041 (Aircraft: KE-301, 지연 3일, Priority: High),
+          TASK-055 (Aircraft: OZ-412, 지연 1일, Priority: Medium)]
+
+LLM 응답:
+"오늘 기준 정비가 지연된 항공기 2대가 있습니다.
+- KE-301: 3일 지연, 우선순위 높음 (엔진 점검)
+- OZ-412: 1일 지연, 우선순위 보통 (기체 세척)"
+
+사용자: "KE-301 정비를 내일로 미뤄줘"
+
+AIP Logic:
+1. rescheduleTask() 식별
+2. 확인 요청: "KE-301의 엔진 점검을 내일(2024-03-16)로 변경하시겠습니까?"
+
+사용자: "응"
+
+AIP Logic:
+1. RescheduleMaintenanceTask Action 실행
+   - 파라미터: {task: TASK-041, newDate: 2024-03-16, reason: "AI agent via user request"}
+   - 권한 확인: MaintenanceSupervisor ✓
+   - 검증 통과
+   - Object 업데이트
+2. 감사 로그 기록
+
+LLM 응답:
+"KE-301의 엔진 점검을 2024-03-16로 변경했습니다. [감사 로그 ID: AUD-20240315-0042]"
+```
+
+---
+
+## AIP Agent vs 범용 LLM 챗봇 비교
+
+| 항목 | 범용 LLM 챗봇 | AIP Agent |
+|---|---|---|
+| 데이터 접근 | 직접 DB 연결 또는 없음 | Ontology 경유 |
+| 권한 제어 | 프롬프트 기반 (우회 가능) | Action Type 강제 (우회 불가) |
+| 환각 | 자유 생성 가능 | Ontology 데이터로 제한 |
+| 감사 | 대화 로그만 | 3계층 구조화 로그 |
+| 변경 추적 | 없음 | 전/후 값 비교 기록 |
+| 승인 워크플로 | 구현 필요 | Action Type에서 지원 |
+
+---
+
+## 한계와 고려사항
+
+AIP × Ontology 아키텍처가 모든 문제를 해결하지는 않습니다.
+
+**Ontology 품질 의존**: Ontology가 잘못 설계되면 에이전트도 잘못 동작합니다. "쓰레기 입력, 쓰레기 출력" 원칙이 적용됩니다.
+
+**Tool 선택 오류**: LLM이 잘못된 Tool을 선택하거나 파라미터를 잘못 추출할 수 있습니다. Tool 설명(description)의 품질이 중요합니다.
+
+**복잡한 추론 한계**: 여러 Object를 조합한 복잡한 비즈니스 판단은 여전히 오류가 발생할 수 있습니다. 중요한 결정은 항상 사람의 최종 확인을 거칩니다.
+
+---
+
+## 정리
+
+AIP × Ontology는 LLM 에이전트를 기업 운영에 안전하게 배포하기 위한 구조적 접근입니다.
+
+- **환각 방지**: Ontology Object를 구조화된 컨텍스트로 제공
+- **권한 이탈 방지**: 모든 쓰기 작업을 Action Type 게이트 통과 강제
+- **감사 가능성**: LLM 대화·Tool 실행·Ontology 변경 3계층 로그
+
+이 접근의 핵심은 "LLM을 신뢰하지 않는다"는 전제입니다. LLM은 자연어 해석과 응답 생성을 담당하고, 데이터 접근과 변경은 Ontology가 통제합니다. 다음 챕터에서는 이 아키텍처를 실제로 도입한 조직들의 사례를 검토합니다.

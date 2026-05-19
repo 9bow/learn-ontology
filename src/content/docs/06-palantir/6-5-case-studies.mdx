@@ -1,0 +1,222 @@
+---
+title: "6-5. 도입 사례: Airbus, Ferrari, BP, NHS, US Army TITAN, Tyson"
+description: "Palantir Foundry와 AIP를 도입한 조직들의 공식 발표·SEC 공시·보도자료 기반 사례를 검토합니다."
+sidebar:
+  order: 65
+learning_objectives:
+  - "각 조직이 Palantir Foundry·AIP를 도입한 목적과 맥락을 설명한다"
+  - "공식 출처로 검증된 도입 사실과 검증 불가능한 주장을 구분한다"
+  - "산업별 Ontology 활용 패턴의 공통점과 차이점을 파악한다"
+prerequisites:
+  - "6-1: Foundry Ontology의 3대 축"
+  - "6-4: AIP × Ontology"
+estimated_minutes: 30
+references:
+  - title: "Palantir Technologies. Form 10-K Annual Report. SEC EDGAR (2024)"
+    url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001321655"
+  - title: "Palantir Technologies. Investor Relations — Earnings"
+    url: "https://investors.palantir.com/"
+  - title: "Airbus. Skywise Open Aviation Data Platform"
+    url: "https://www.airbus.com/en/products-services/commercial-aircraft/aircraft-services-and-support/skywise"
+  - title: "NHS England. Federated Data Platform Programme"
+    url: "https://www.england.nhs.uk/contact-us/privacy-notice/how-we-use-your-information/our-services/federated-data-platform/"
+  - title: "Palantir. AIPCon Customer Sessions (2023)"
+    url: "https://www.palantir.com/aipcon/"
+---
+
+## 사례 검토 원칙
+
+이 챕터의 모든 사례는 다음 출처 중 하나 이상에서 확인된 내용만 포함합니다.
+
+- Palantir SEC 공시(10-K, 10-Q, 8-K)
+- 고객사 공식 보도자료 또는 공식 웹사이트
+- AIPCon 등 Palantir 공식 행사의 고객 발표
+- 신뢰할 수 있는 미디어의 보도 (Financial Times, Reuters, BBC 등)
+
+수치가 공식 출처에 없는 경우 "출처 없음"으로 표기하고 포함하지 않습니다.
+
+---
+
+## 1. Airbus — Skywise 항공 데이터 플랫폼
+
+### 도입 맥락
+
+Airbus는 2017년 Palantir와 협력해 Skywise 항공 데이터 플랫폼을 구축했습니다. Skywise는 항공기 운영 데이터를 수집·분석해 항공사와 정비 팀에 제공하는 플랫폼입니다. Airbus 공식 웹사이트는 Skywise를 "개방형 항공 데이터 플랫폼(Open Aviation Data Platform)"으로 소개합니다.
+
+### Ontology 활용 패턴
+
+Skywise에서 Foundry Ontology는 다음 역할을 수행합니다.
+
+- **Aircraft Object Type**: 개별 항공기의 센서 데이터, 정비 이력, 비행 기록 통합
+- **MaintenanceEvent Link**: 항공기와 정비 이벤트 연결
+- **Predictive Maintenance Function**: 부품 교체 시점 예측
+
+Airbus는 AIPCon 2023에서 Skywise 플랫폼의 Foundry 기반 아키텍처를 공개적으로 발표했습니다.
+
+### 검증된 사실
+
+- Airbus-Palantir 파트너십: Airbus 공식 발표 및 Palantir 10-K에 고객사로 명시
+- Skywise 플랫폼 존재 및 Foundry 기반: Airbus 공식 웹사이트 확인 가능
+
+### 검증 불가 사항
+
+구체적인 비용 절감 수치, 항공기 대수, ROI 수치는 공식 출처에서 확인되지 않아 이 챕터에 포함하지 않습니다.
+
+---
+
+## 2. Ferrari — 레이싱 운영 분석
+
+### 도입 맥락
+
+Ferrari Formula 1 팀은 Palantir Foundry를 레이스 운영 데이터 분석에 활용합니다. Palantir는 Ferrari를 공식 고객으로 홈페이지와 마케팅 자료에 명시하고 있으며, Ferrari 측도 파트너십을 공개 확인했습니다.
+
+### Ontology 활용 패턴
+
+F1 레이싱의 데이터 복잡성은 극단적입니다. 경주 중 차량 수백 개의 센서가 초당 수천 건의 데이터를 전송합니다.
+
+- **Car Object Type**: 각 레이스카의 실시간 센서 데이터 통합
+- **LapEvent Object Type**: 랩별 성능 지표
+- **PitStopStrategy Action**: 피트스톱 타이밍 결정 지원
+
+### 검증된 사실
+
+- Ferrari-Palantir 파트너십: 양측 공식 발표에서 확인 가능
+- Foundry 기반 데이터 분석: Palantir 공식 고객 사례로 게시
+
+### 검증 불가 사항
+
+특정 레이스에서의 성적 개선 기여도, 구체적 전략 세부사항은 공식 확인 불가로 포함하지 않습니다.
+
+---
+
+## 3. BP — 에너지 운영 최적화
+
+### 도입 맥락
+
+BP(British Petroleum)는 Palantir Foundry를 에너지 생산 운영에 활용합니다. Palantir의 2023년 10-K에 BP가 주요 상업 고객으로 언급됩니다. BP는 2019년부터 Palantir와 협력 관계를 유지해왔습니다.
+
+### Ontology 활용 패턴
+
+석유·가스 산업에서 Foundry Ontology는 분산된 생산 시설과 공급망 데이터를 통합하는 역할을 합니다.
+
+- **Well Object Type**: 개별 유정의 생산량, 압력, 온도 데이터
+- **Pipeline Object Type**: 파이프라인 상태 모니터링
+- **ProductionSite Link**: 유정과 처리 시설의 연결 관계
+- **MaintenanceAlert Action**: 이상 감지 시 정비 요청 생성
+
+### 검증된 사실
+
+- BP-Palantir 파트너십: Palantir 10-K SEC 공시 및 공식 보도자료 확인
+
+### 검증 불가 사항
+
+생산 효율 수치, 구체적 절감액은 공식 출처 없음으로 포함하지 않습니다.
+
+---
+
+## 4. NHS England — 연합 데이터 플랫폼
+
+### 도입 맥락
+
+NHS England(영국 국민보건서비스)는 2023년 Palantir를 선정해 Federated Data Platform(FDP)을 구축하기 시작했습니다. 이 사업은 NHS 공식 웹사이트에 상세히 기술되어 있으며, 계약 가치와 범위가 공개되었습니다.
+
+FDP의 목표는 전국 NHS 트러스트의 데이터를 통합해 병원 운영, 대기자 명단 관리, 공급망 최적화에 활용하는 것입니다.
+
+### Ontology 활용 패턴
+
+의료 데이터는 민감성과 복잡성이 극단적입니다. NHS FDP에서 Foundry Ontology는 데이터 거버넌스의 핵심입니다.
+
+- **Patient Object Type**: 환자 식별자(익명화), 예약 상태
+- **WaitingListEntry Object Type**: 대기자 명단 항목
+- **Hospital Object Type**: 병원 시설, 병상 현황
+- **데이터 접근 제어**: Object Type 레벨의 역할 기반 접근
+
+### 검증된 사실
+
+- NHS-Palantir FDP 계약: NHS England 공식 웹사이트 및 공식 보도자료 확인
+- 계약 진행 및 규모: NHS 조달 공시 문서
+
+### 논쟁과 맥락
+
+NHS FDP는 의료 데이터 프라이버시 우려로 상당한 공공 논쟁을 유발했습니다. 시민 단체 openDemocracy와 의료계 일부는 데이터 거버넌스와 상업적 이용 가능성에 우려를 표명했습니다. NHS는 데이터 보호 조치를 공식 웹사이트에 상세히 게시했습니다.
+
+이 논쟁은 다음 챕터(6-6)의 비판적 검토에서 더 자세히 다룹니다.
+
+---
+
+## 5. US Army — TITAN 시스템
+
+### 도입 맥락
+
+미국 육군은 2022년 TITAN(Tactical Intelligence Targeting Access Node) 프로그램의 소프트웨어 개발사로 Palantir를 선정했습니다. TITAN은 지상 기반 정보·감시·정찰 시스템으로, 미 육군 공식 보도자료에서 계약 사실이 확인됩니다.
+
+### Ontology 활용 패턴 (공개 정보 범위 내)
+
+군사 시스템의 기술 세부사항은 기밀이지만, Palantir의 방산 플랫폼이 Foundry 기반임은 공개되어 있습니다.
+
+- **Entity Object Type**: 감지된 개체의 식별 및 추적
+- **Mission Object Type**: 임무 계획 및 상태
+- **Intelligence Link**: 정보 소스와 타겟 엔티티 연결
+
+### 검증된 사실
+
+- TITAN 계약 수주: 미 육군 공식 보도자료(2022년)
+- Palantir의 US Government 부문 매출: 10-K 및 분기 보고서
+
+### 검증 불가 사항
+
+기술 세부사항, 배치 현황, 운영 결과는 기밀로 공개 확인 불가입니다.
+
+---
+
+## 6. Tyson Foods — 식품 공급망 최적화
+
+### 도입 맥락
+
+Tyson Foods는 미국 최대 육류 가공 기업 중 하나입니다. Palantir는 2021년 AIPCon에서 Tyson Foods를 고객 사례로 공개 발표했으며, Tyson 측 임원이 직접 발표에 참여했습니다.
+
+### Ontology 활용 패턴
+
+식품 공급망은 농장에서 소비자까지 수백 개의 단계가 있습니다.
+
+- **FarmSupplier Object Type**: 축산 농가의 공급량, 품질 데이터
+- **ProcessingPlant Object Type**: 가공 시설 생산 현황
+- **InventoryItem Object Type**: 재고 위치·수량·유통기한
+- **ShipmentTracking Link**: 제품 이동 경로 추적
+
+### 검증된 사실
+
+- Tyson-Palantir 파트너십: AIPCon 2021 공개 발표, Palantir 공식 고객 사례 게시
+
+### 검증 불가 사항
+
+구체적 비용 절감액, 폐기물 감소 비율은 공식 출처로 확인되지 않습니다.
+
+---
+
+## 사례별 Ontology 패턴 비교
+
+| 산업 | 핵심 Object Types | 주요 Link 관계 | Action 패턴 |
+|---|---|---|---|
+| 항공(Airbus) | Aircraft, Component, Flight | Aircraft→Maintenance | PredictiveMaintenance |
+| F1(Ferrari) | Car, Lap, PitStop | Car→Strategy | RaceStrategyUpdate |
+| 에너지(BP) | Well, Pipeline, Facility | Well→ProductionSite | MaintenanceAlert |
+| 의료(NHS) | Patient, WaitingList, Hospital | Patient→Appointment | ScheduleUpdate |
+| 방산(US Army) | Entity, Mission, Asset | Entity→Intelligence | (기밀) |
+| 식품(Tyson) | Supplier, Plant, Inventory | Supplier→Shipment | InventoryReorder |
+
+공통 패턴: 모든 사례에서 **분산된 원천 데이터를 하나의 비즈니스 엔티티 모델로 통합** 하고, **운영 담당자가 데이터에 직접 접근하고 조치** 할 수 있게 하는 것이 핵심 가치입니다.
+
+---
+
+## 정리
+
+여섯 사례 모두 Palantir-고객 파트너십의 존재는 공식 출처로 확인됩니다. 그러나 구체적 성과 수치(비용 절감 X%, 효율 Y% 개선)는 대부분 공식 확인이 불가능하며 이 챕터에 포함하지 않았습니다.
+
+공통적으로 관찰되는 Foundry Ontology 가치는 다음과 같습니다.
+
+- 분산된 이기종 데이터의 의미론적 통합
+- 비즈니스 사용자의 직접 데이터 접근
+- 운영 변경에 대한 감사 추적
+
+다음 챕터에서는 Palantir와 Foundry Ontology에 대한 비판적 시각을 다룹니다.

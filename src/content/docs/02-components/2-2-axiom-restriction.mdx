@@ -1,0 +1,235 @@
+---
+title: "Axiom과 Restriction"
+description: "OWL의 공리(Axiom)와 제한(Restriction)을 통해 클래스와 속성에 정밀한 의미를 부여하는 방법을 학습합니다."
+sidebar:
+  order: 2
+learning_objectives:
+  - SubClassOf, EquivalentClasses, DisjointClasses 공리를 설명하고 작성할 수 있다
+  - 존재 제한(existential restriction)과 전칭 제한(universal restriction)의 차이를 이해한다
+  - 카디널리티 제한을 사용해 관계의 수를 제어할 수 있다
+prerequisites:
+  - "2-1-class-individual-property"
+estimated_minutes: 40
+references:
+  - title: "W3C OWL 2 Web Ontology Language Primer (Second Edition)"
+    url: "https://www.w3.org/TR/owl2-primer/"
+  - title: "W3C OWL 2 Web Ontology Language Structural Specification and Functional-Style Syntax"
+    url: "https://www.w3.org/TR/owl2-syntax/"
+  - title: "Horridge, M. et al. (2011). A Practical Guide to Building OWL Ontologies Using Protégé 4"
+    url: "https://owl.cs.manchester.ac.uk/publications/talks-and-tutorials/protg-owl-tutorial/"
+  - title: "Baader, F. et al. (eds.) (2003). The Description Logic Handbook"
+    url: "https://www.cambridge.org/9780521781763"
+---
+
+## 공리(Axiom)란 무엇인가
+
+앞 챕터에서 클래스, 개체, 속성을 배웠습니다. 이것만으로는 온톨로지를 "정의"했다고 하기 어렵습니다. 진짜 온톨로지의 힘은 **공리(Axiom)** 에서 나옵니다.
+
+공리는 클래스와 속성에 대한 **논리적 문장**입니다. "모든 의사는 사람이다", "처방은 반드시 하나 이상의 약물을 포함한다", "남성과 여성은 서로 겹치지 않는다" — 이런 지식을 형식화한 것이 공리입니다.
+
+OWL의 공리 체계는 **기술 논리(Description Logic, DL)** 에 기반합니다. DL은 일차 술어 논리(FOL)의 결정 가능한(decidable) 부분집합으로, 추론의 이론적 보장을 제공합니다.
+
+---
+
+## 클래스 공리 (Class Axioms)
+
+### SubClassOf
+
+가장 기본적인 공리입니다. `A rdfs:subClassOf B`는 "A의 모든 인스턴스는 B의 인스턴스이기도 하다"를 의미합니다.
+
+```turtle
+:Physician rdfs:subClassOf :Person .
+:Antibiotic rdfs:subClassOf :Drug .
+:PediatricPhysician rdfs:subClassOf :Physician .
+# 추이성: 소아과 의사는 의사이고, 의사는 사람이므로, 소아과 의사는 사람
+```
+
+### EquivalentClasses
+
+두 클래스가 **완전히 같은 개체 집합**을 가리킬 때 사용합니다. `rdfs:subClassOf`는 단방향이지만, `owl:equivalentClass`는 양방향입니다.
+
+```turtle
+# "의사(Doctor)"와 "의료인(Physician)"을 동일 클래스로 선언
+:Doctor owl:equivalentClass :Physician .
+
+# 정의적 동치: 허가된 의료인 = 면허를 보유한 사람
+:LicensedPractitioner owl:equivalentClass [
+    rdf:type owl:Class ;
+    owl:intersectionOf (
+        :Person
+        [ rdf:type owl:Restriction ;
+          owl:onProperty :hasLicense ;
+          owl:someValuesFrom :MedicalLicense ]
+    )
+] .
+```
+
+### DisjointClasses
+
+두 클래스가 **공통 인스턴스를 가질 수 없음**을 선언합니다. 일관성 검사(consistency checking)의 핵심 도구입니다.
+
+```turtle
+# 남성과 여성은 교집합이 없다
+:Male owl:disjointWith :Female .
+
+# 여러 클래스를 한 번에 분리 선언
+[ rdf:type owl:AllDisjointClasses ;
+  owl:members ( :Liquid :Solid :Gas ) ] .
+```
+
+**왜 중요한가** — 만약 데이터에 `:Alex rdf:type :Male, :Female`이 있다면, 추론 엔진이 **불일관성(inconsistency)** 을 감지하고 경고를 줍니다. 이것이 온톨로지의 데이터 품질 검증 능력입니다.
+
+---
+
+## Restriction (제한)
+
+**Restriction** 은 클래스를 속성의 사용 패턴으로 정의하는 방법입니다. OWL에서 가장 강력하고 복잡한 부분입니다.
+
+Restriction을 이해하는 핵심: **Restriction은 익명 클래스(anonymous class)다.** "어떤 속성을 어떤 방식으로 사용하는 개체들의 집합"을 정의합니다.
+
+### 존재 제한 (Existential Restriction): someValuesFrom
+
+"적어도 하나의 Y를 가진 X"를 표현합니다. 수학 기호로는 **∃ (존재 한정사)** 에 해당합니다.
+
+```turtle
+# "처방을 하는 의사" = 적어도 하나의 Drug를 prescribes하는 개체
+:PrescribingPhysician owl:equivalentClass [
+    rdf:type owl:Restriction ;
+    owl:onProperty :prescribes ;
+    owl:someValuesFrom :Drug
+] .
+
+# 항생제를 처방하는 의사
+:AntibioticPrescriber rdfs:subClassOf [
+    rdf:type owl:Restriction ;
+    owl:onProperty :prescribes ;
+    owl:someValuesFrom :Antibiotic
+] .
+```
+
+### 전칭 제한 (Universal Restriction): allValuesFrom
+
+"모든 Y가 특정 타입인 X"를 표현합니다. 수학 기호로는 **∀ (전칭 한정사)** 에 해당합니다.
+
+```turtle
+# 소아과 의사는 처방하는 모든 약물이 소아과용 약물이어야 한다
+:PediatricPhysician rdfs:subClassOf [
+    rdf:type owl:Restriction ;
+    owl:onProperty :prescribes ;
+    owl:allValuesFrom :PediatricDrug
+] .
+```
+
+**someValuesFrom vs allValuesFrom 비교:**
+
+| 제한 유형 | 의미 | 예시 |
+|---------|------|------|
+| `someValuesFrom` | 적어도 하나 | "부모가 있다" — 모든 사람은 부모가 적어도 한 명 |
+| `allValuesFrom` | 전부 | "채식주의자가 먹는 음식은 모두 식물성" |
+
+`allValuesFrom`은 **열린 세계 가정** 하에서 "처방하는 게 없다면 위반이 아님"에 주의하세요. 이 점은 챕터 2-3에서 자세히 다룹니다.
+
+### 값 제한 (hasValue)
+
+특정 개체를 속성 값으로 가지는 클래스를 정의합니다.
+
+```turtle
+# 대한민국 의사: 발행 기관이 보건복지부인 면허를 가진 의사
+:KoreanPhysician rdfs:subClassOf [
+    rdf:type owl:Restriction ;
+    owl:onProperty :licenseIssuedBy ;
+    owl:hasValue :MinistryOfHealthAndWelfare
+] .
+```
+
+---
+
+## 카디널리티 제한 (Cardinality Restriction)
+
+관계의 **수(count)** 를 제어합니다.
+
+```turtle
+# 정확히 하나: 모든 사람은 정확히 하나의 생년월일을 가진다
+:Person rdfs:subClassOf [
+    rdf:type owl:Restriction ;
+    owl:onProperty :birthDate ;
+    owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+    owl:onDataRange xsd:date
+] .
+
+# 최소 하나: 처방에는 적어도 하나의 약물이 있어야 한다
+:Prescription rdfs:subClassOf [
+    rdf:type owl:Restriction ;
+    owl:onProperty :includes ;
+    owl:minQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+    owl:onClass :Drug
+] .
+
+# 최대 둘: 처방전 서명자는 최대 두 명
+:Prescription rdfs:subClassOf [
+    rdf:type owl:Restriction ;
+    owl:onProperty :signedBy ;
+    owl:maxCardinality "2"^^xsd:nonNegativeInteger
+] .
+```
+
+| 카디널리티 | OWL 키워드 | 의미 |
+|-----------|-----------|------|
+| 정확히 N | `owl:qualifiedCardinality` | = N |
+| 최소 N | `owl:minQualifiedCardinality` | ≥ N |
+| 최대 N | `owl:maxQualifiedCardinality` | ≤ N |
+
+---
+
+## 복합 클래스 표현 (Boolean Combination)
+
+클래스는 집합 연산으로 결합할 수 있습니다.
+
+```turtle
+# 교집합 (AND): 의사이면서 연구자인 사람
+:ClinicianScientist owl:equivalentClass [
+    rdf:type owl:Class ;
+    owl:intersectionOf ( :Physician :Researcher )
+] .
+
+# 합집합 (OR): 의사 또는 간호사
+:HealthcareProfessional owl:equivalentClass [
+    rdf:type owl:Class ;
+    owl:unionOf ( :Physician :Nurse )
+] .
+
+# 여집합 (NOT): 의사가 아닌 사람
+:NonPhysician owl:equivalentClass [
+    rdf:type owl:Class ;
+    owl:complementOf :Physician
+] .
+```
+
+---
+
+## 종합 예시: 정의적 클래스
+
+공리와 Restriction을 결합하면 클래스를 **충분 필요 조건**으로 정의할 수 있습니다. 이것이 **필요 충분 조건 정의(defined class)** 입니다. 추론 엔진이 이 정의를 사용해 새로운 개체를 자동으로 분류합니다.
+
+```turtle
+# "항생제"의 정의: 박테리아를 표적으로 하는 약물
+:Antibiotic owl:equivalentClass [
+    rdf:type owl:Class ;
+    owl:intersectionOf (
+        :Drug
+        [ rdf:type owl:Restriction ;
+          owl:onProperty :targetsOrganism ;
+          owl:someValuesFrom :Bacterium ]
+    )
+] .
+
+# 데이터에 다음이 있으면:
+:Penicillin rdf:type :Drug ;
+            :targetsOrganism :StreptococcusBacterium .
+
+# 추론 결과: :Penicillin rdf:type :Antibiotic (자동 분류)
+```
+
+이것이 수동 분류와 온톨로지 추론의 결정적 차이입니다. 데이터베이스에서는 "페니실린은 항생제다"를 직접 입력해야 하지만, 온톨로지에서는 페니실린의 특성만 기술하면 추론 엔진이 항생제임을 도출합니다.
+
+다음 챕터에서는 이 추론 능력의 전제 조건인 열린 세계 가정(OWA)과 닫힌 세계 가정(CWA)의 차이를 살펴봅니다.

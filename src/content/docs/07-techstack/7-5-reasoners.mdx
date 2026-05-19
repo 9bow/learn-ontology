@@ -1,0 +1,115 @@
+---
+title: "7-5. OWL 추론기"
+description: "HermiT, Pellet, ELK, Konclude, RDFox — OWL 추론기의 표현력·성능·적합 사례 비교"
+sidebar:
+  order: 5
+learning_objectives:
+  - "OWL 2 프로파일(DL, EL, QL, RL)별 추론 복잡도 차이를 설명할 수 있다"
+  - "HermiT, Pellet, ELK, Konclude, RDFox 각각의 알고리즘 특성과 강점을 비교할 수 있다"
+  - "온톨로지 규모와 표현력 요구에 따라 적합한 추론기를 선택할 수 있다"
+prerequisites:
+  - "OWL 2 프로파일 개념 (DL, EL, QL, RL)"
+  - "온톨로지 일관성 검사·분류의 의미"
+estimated_minutes: 28
+references:
+  - title: "Motik et al. 2009 — Hypertableau Reasoning for Description Logics (JAIR)"
+    url: "https://doi.org/10.1613/jair.2811"
+  - title: "Kazakov et al. 2014 — The Incredible ELK (Journal of Automated Reasoning)"
+    url: "https://doi.org/10.1007/s10817-013-9296-3"
+  - title: "Sirin et al. 2007 — Pellet: A practical OWL-DL reasoner"
+    url: "https://doi.org/10.1016/j.websem.2007.03.004"
+  - title: "Oxford Semantic Technologies — RDFox 기술 문서"
+    url: "https://docs.oxfordsemantic.tech/"
+---
+
+OWL 추론기는 온톨로지의 공리(axiom)로부터 명시되지 않은 사실을 자동으로 유도한다. 추론기가 수행하는 핵심 작업은 세 가지다. **일관성 검사(consistency checking)**: 온톨로지에 모순이 없는지 확인한다. **분류(classification)**: 모든 클래스 간의 서브클래스 관계를 계산한다. **인스턴스 실현(realization)**: 각 개체(individual)가 속하는 가장 구체적인 클래스를 결정한다.
+
+## OWL 2 프로파일과 추론 복잡도
+
+추론기를 선택하기 전에 온톨로지가 어느 OWL 2 프로파일에 속하는지 파악해야 한다.
+
+| 프로파일 | 논리 기반 | 분류 복잡도 | 표현력 |
+|---------|---------|-----------|--------|
+| OWL 2 DL | SROIQ(D) | 2NEXPTIME | 최고 |
+| OWL 2 EL | EL++ | P-time | 대형 생물의학 온톨로지 |
+| OWL 2 QL | DL-Lite | NLogSpace | DB 통합, OBDA |
+| OWL 2 RL | pD* 부분집합 | P-time | 규칙 기반 추론 |
+
+SNOMED CT, Gene Ontology처럼 수만~수십만 개의 클래스를 가진 바이오의학 온톨로지는 EL 프로파일로 설계되어 있어 ELK 같은 EL 추론기가 적합하다. 소규모 도메인 온톨로지에서 전이적 역할 연쇄나 카디널리티 제약을 쓴다면 DL 추론기(HermiT, Pellet)가 필요하다.
+
+## HermiT
+
+HermiT는 옥스퍼드 대학에서 개발한 OWL 2 DL 추론기로, Hypertableau 알고리즘을 사용한다. Hypertableau는 기존 tableau 알고리즘 대비 불필요한 분기를 크게 줄여 실용적인 DL 온톨로지에서 성능 이점을 보인다.
+
+**특징:**
+- **OWL 2 DL 완전 지원**: 역할 연쇄, 카디널리티 제약, 반사성, 비대칭성 등 OWL 2 DL의 모든 구문을 지원한다.
+- **OWL API 통합**: Protégé의 기본 추론기로 채택되어 있어 플러그인 설치 없이 바로 사용할 수 있다.
+- **데이터 타입 추론**: XML Schema 데이터 타입에 대한 추론을 지원한다.
+
+**한계:** 대형 EL 온톨로지(SNOMED CT 등)에서는 ELK보다 수십~수백 배 느리다. 매우 복잡한 DL 공리에서는 추론이 실용적이지 않은 시간이 걸릴 수 있다.
+
+## Pellet
+
+Pellet은 Maryland 대학(후에 Clark & Parsia)에서 개발한 OWL DL 추론기다. 현재는 Stardog에 흡수됐으며, 오픈소스 버전(openllet)이 Apache 2 라이선스로 유지된다.
+
+**특징:**
+- **OWL 2 DL 완전 지원**: HermiT와 동일한 표현력을 제공한다.
+- **증분 추론**: 온톨로지가 변경될 때 전체 재계산 없이 영향받는 추론만 업데이트하는 증분(incremental) 추론을 지원한다.
+- **SWRL 지원**: Semantic Web Rule Language 규칙과 연동해 OWL 공리로 표현하기 어려운 규칙을 처리할 수 있다.
+- **설명(Explanation)**: 추론 결과의 근거가 되는 공리 집합을 설명해 온톨로지 디버깅에 유용하다.
+
+**한계:** 대형 TBox(용어 공리)에서는 HermiT나 ELK보다 느릴 수 있다. 현재 활발한 개발이 이루어지지 않는다.
+
+## ELK
+
+ELK는 카를스루에 공과대학(KIT)에서 개발한 OWL 2 EL 추론기로, 대규모 생물의학 온톨로지 분류에 특화된다.
+
+**특징:**
+- **다항 시간 복잡도**: OWL 2 EL의 이론적 복잡도(P-time)를 실제로 달성하며, SNOMED CT(약 35만 개 개념) 전체 분류를 수 초 내에 완료한다.
+- **병렬 처리**: 멀티코어 CPU를 활용한 병렬 분류 알고리즘을 구현해 대형 온톨로지에서 선형에 가까운 속도 향상을 얻는다.
+- **OWL API 통합**: Protégé 플러그인으로 설치해 사용할 수 있다.
+
+**한계:** OWL 2 EL 프로파일만 지원한다. 역할 연쇄나 카디널리티 제약 같은 OWL 2 DL 전용 구문이 포함된 온톨로지는 처리할 수 없다.
+
+**적합 사례:** SNOMED CT, Gene Ontology, ChEBI처럼 클래스 수만 개 이상의 생물의학 온톨로지 분류.
+
+## Konclude
+
+Konclude는 카를스루에 공과대학에서 개발한 OWL 2 DL 추론기로, 고도로 최적화된 흡수(absorption) 기법과 캐싱으로 대형 DL 온톨로지 분류 속도를 높였다.
+
+**특징:**
+- **OWL 2 DL 지원**: DL 표현력을 유지하면서 EL에 가까운 성능을 달성하는 것이 목표다.
+- **흡수(Absorption) 최적화**: TBox 공리를 효율적인 형태로 전처리해 tableau 분기를 줄인다.
+- **비교 벤치마크**: 여러 OWL Reasoner Evaluation(ORE) 경진대회에서 DL 분류 속도 부문 상위 성적을 기록했다.
+
+**한계:** 커뮤니티 규모가 작고 문서화가 HermiT·Pellet 대비 부족하다.
+
+## RDFox (추론기 역할)
+
+RDFox는 트리플스토어이자 추론기로, Datalog 기반 OWL 2 RL 추론을 인메모리로 수행한다. 앞 챕터(7-2)에서 트리플스토어로 소개했으나, 추론 성능 측면에서도 중요하다.
+
+**추론 특성:**
+- **포워드 체이닝**: 데이터가 추가될 때마다 관련 규칙을 즉시 실행해 추론 결과를 미리 계산(materialization)한다.
+- **증분 추론**: 데이터 변경 시 영향받는 트리플만 업데이트한다. 전체 재계산 없이 일관성을 유지한다.
+- **OWL 2 RL 완전 지원**: RL 규칙 전체를 Datalog으로 변환해 실행한다.
+- **커스텀 규칙**: OWL로 표현하기 어려운 도메인 규칙을 Datalog으로 직접 추가할 수 있다.
+
+## 추론기 비교
+
+| 항목 | HermiT | Pellet (openllet) | ELK | Konclude | RDFox |
+|------|--------|------------------|-----|---------|-------|
+| OWL 프로파일 | DL | DL | EL | DL | RL |
+| 알고리즘 | Hypertableau | Tableau | 구조 규칙 | 최적화 Tableau | Datalog 포워드 |
+| 라이선스 | LGPL | Apache 2 | Apache 2 | LGPL | 상용 |
+| 대형 EL 온톨로지 | 느림 | 느림 | 매우 빠름 | 보통 | 해당 없음 |
+| 증분 추론 | 미지원 | 지원 | 미지원 | 미지원 | 지원 |
+| SWRL 지원 | 미지원 | 지원 | 미지원 | 미지원 | 미지원 |
+| 설명 생성 | 지원 | 지원 | 미지원 | 지원 | 미지원 |
+
+## 추론기 선택 가이드
+
+- **소규모 OWL DL 온톨로지 (클래스 수천 이하)**: HermiT 또는 Pellet. Protégé와 통합이 쉽다.
+- **대형 생물의학 EL 온톨로지**: ELK. SNOMED CT, GO 분류에 사실상 표준.
+- **엔터프라이즈 OWL DL 고속 분류**: Konclude. DL 범위에서 성능이 중요할 때.
+- **실시간 증분 OWL RL 추론**: RDFox. 고빈도 데이터 변경 환경.
+- **SWRL 규칙 + OWL DL**: Pellet (openllet). OWL 공리로 표현하기 어려운 규칙이 필요할 때.

@@ -1,0 +1,257 @@
+---
+title: "4-3. Property Path와 다중 홉 질의"
+description: "SPARQL 1.1 Property Path 문법을 이용해 그래프의 임의 깊이 경로를 탐색하는 방법을 학습합니다."
+sidebar:
+  order: 43
+learning_objectives:
+  - "Property Path의 기본 연산자(순서, 대안, 역방향, 클로저)를 이해한다"
+  - "임의 깊이 탐색(+ 와 *)을 이용한 전이적 관계 질의를 작성한다"
+  - "Property Path의 성능 특성과 사용 시 주의사항을 파악한다"
+prerequisites:
+  - "4-1: SPARQL SELECT 기초"
+  - "RDF 그래프 구조와 트리플 개념"
+estimated_minutes: 30
+references:
+  - title: "W3C. SPARQL 1.1 Query Language — Property Paths (2013)"
+    url: "https://www.w3.org/TR/sparql11-query/#propertypaths"
+  - title: "W3C. SPARQL 1.1 Query Language Recommendation (2013)"
+    url: "https://www.w3.org/TR/sparql11-query/"
+  - title: "DuCharme, B. Learning SPARQL 2nd ed. O'Reilly (2013)"
+    url: "https://www.oreilly.com/library/view/learning-sparql/9781449371784/"
+---
+
+## Property Path란
+
+관계형 데이터베이스에서 계층 구조를 탐색하려면 재귀 CTE(Common Table Expression)나 반복 조인이 필요합니다. RDF 그래프에서는 **Property Path** 가 이 역할을 담당합니다.
+
+Property Path는 SPARQL 1.1에서 도입된 기능으로, 서술어 위치에 단순 URI 대신 경로 표현식을 쓸 수 있게 합니다. 이를 통해 하나의 트리플 패턴으로 임의 깊이의 그래프 탐색이 가능합니다.
+
+```sparql
+# 일반 트리플 패턴 — 정확히 한 홉
+?parent rdfs:subClassOf ?child .
+
+# Property Path — 임의 깊이 탐색
+?ancestor rdfs:subClassOf+ ?descendant .
+```
+
+---
+
+## Property Path 연산자 요약
+
+| 문법 | 이름 | 의미 |
+|---|---|---|
+| `p1 / p2` | 순서(Sequence) | p1 다음에 p2 |
+| `p1 \| p2` | 대안(Alternative) | p1 또는 p2 |
+| `p+` | 하나 이상(OneOrMore) | p를 1번 이상 반복 |
+| `p*` | 0 이상(ZeroOrMore) | p를 0번 이상 반복 |
+| `p?` | 0 또는 1(ZeroOrOne) | p를 0번 또는 1번 |
+| `^p` | 역방향(Inverse) | 서술어 방향 반전 |
+| `!p` | 부정(Negation) | p가 아닌 모든 서술어 |
+| `!(p1\|p2)` | 복합 부정 | p1도 p2도 아닌 서술어 |
+
+---
+
+## 예제 1: 클래스 계층 전체 탐색 (`+`)
+
+`rdfs:subClassOf`는 전이적 관계입니다. 특정 클래스의 **모든 상위 클래스** 를 한 번에 가져옵니다.
+
+```sparql
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl:  <http://www.w3.org/2002/07/owl#>
+
+SELECT DISTINCT ?superClass
+WHERE {
+  <http://example.org/ontology#GraduateStudent>
+    rdfs:subClassOf+ ?superClass .
+  FILTER (!isBlank(?superClass))
+}
+ORDER BY ?superClass
+```
+
+`+`는 1회 이상 반복이므로 직접 상위 클래스부터 최상위 클래스까지 모두 반환합니다.
+
+---
+
+## 예제 2: 자기 자신 포함 탐색 (`*`)
+
+`*`는 0회 이상이므로 시작 노드 자신도 결과에 포함됩니다.
+
+```sparql
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+
+SELECT ?concept ?label
+WHERE {
+  VALUES ?root { <http://example.org/thesaurus/Technology> }
+
+  ?root skos:narrower* ?concept .
+  ?concept skos:prefLabel ?label .
+  FILTER (lang(?label) = "ko")
+}
+ORDER BY ?label
+```
+
+SKOS 시소러스에서 특정 개념과 그 하위 개념 전체를 가져옵니다. `skos:narrower*`는 루트 개념 자신(0홉)과 모든 하위 개념을 포함합니다.
+
+---
+
+## 예제 3: 순서 경로 (`/`)
+
+여러 서술어를 연결해 다단계 경로를 표현합니다.
+
+```sparql
+PREFIX dbo:  <http://dbpedia.org/ontology/>
+PREFIX dbr:  <http://dbpedia.org/resource/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?grandfatherName
+WHERE {
+  dbr:Barack_Obama
+    dbo:parent / dbo:parent ?grandfather .
+  ?grandfather rdfs:label ?grandfatherName .
+  FILTER (lang(?grandfavoriteiteLabel) = "en")
+}
+```
+
+`dbo:parent / dbo:parent`는 "부모의 부모", 즉 조부모를 의미합니다. 슬래시로 경로를 연결하면 중간 노드를 변수로 선언할 필요 없이 직접 탐색할 수 있습니다.
+
+---
+
+## 예제 4: 대안 경로 (`|`)
+
+동의어 관계나 복수 어휘를 통합해 탐색합니다.
+
+```sparql
+PREFIX skos:   <http://www.w3.org/2004/02/skos/core#>
+PREFIX schema: <https://schema.org/>
+PREFIX rdfs:   <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?entity ?label
+WHERE {
+  ?entity (rdfs:label | skos:prefLabel | schema:name) ?label .
+  FILTER (lang(?label) = "ko")
+  FILTER regex(?label, "인공지능", "i")
+}
+LIMIT 30
+```
+
+레이블을 나타내는 세 가지 서술어 중 하나라도 매칭되면 결과에 포함됩니다.
+
+---
+
+## 예제 5: 역방향 경로 (`^`)
+
+서술어의 방향을 뒤집어 탐색합니다.
+
+```sparql
+PREFIX dbo:  <http://dbpedia.org/ontology/>
+PREFIX dbr:  <http://dbpedia.org/resource/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?member ?name
+WHERE {
+  # dbo:team이 dbr:Manchester_United를 가리키는 ?member 탐색
+  ?member ^dbo:team dbr:Manchester_United ;
+          rdfs:label ?name .
+  FILTER (lang(?name) = "en")
+}
+LIMIT 20
+```
+
+`^dbo:team dbr:Manchester_United`는 `?member dbo:team dbr:Manchester_United`와 동일합니다. 역방향 연산자는 복잡한 그래프 구조를 더 읽기 쉽게 만듭니다.
+
+---
+
+## 예제 6: 복합 경로 — 조직 계층 탐색
+
+```sparql
+PREFIX org:  <http://www.w3.org/ns/org#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?dept ?deptName ?employee ?empName
+WHERE {
+  VALUES ?topOrg { <http://example.org/org/HQ> }
+
+  # 0회 이상 subOrganizationOf로 연결된 모든 하위 조직
+  ?topOrg org:hasSubOrganization* ?dept .
+  ?dept rdfs:label ?deptName .
+
+  # 각 조직의 구성원
+  ?employee org:memberOf ?dept ;
+            rdfs:label ?empName .
+}
+ORDER BY ?deptName ?empName
+```
+
+`org:hasSubOrganization*`로 조직 계층 전체를 한 번에 탐색하고, 각 조직의 구성원을 함께 가져옵니다.
+
+---
+
+## 예제 7: 부정 경로 (`!`)
+
+특정 서술어를 **제외한** 모든 연결을 탐색합니다.
+
+```sparql
+PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl:  <http://www.w3.org/2002/07/owl#>
+
+SELECT ?s ?p ?o
+WHERE {
+  <http://example.org/concept/AI>
+    !(rdf:type | rdfs:label | owl:sameAs) ?o .
+  BIND(<http://example.org/concept/AI> AS ?s)
+}
+LIMIT 20
+```
+
+rdf:type, rdfs:label, owl:sameAs를 제외한 모든 연결 서술어와 목적어를 반환합니다.
+
+---
+
+## 성능 주의사항
+
+Property Path는 강력하지만 잘못 사용하면 심각한 성능 문제를 유발합니다.
+
+**피해야 할 패턴:**
+
+```sparql
+# 위험: 전체 그래프를 순회하는 무제한 탐색
+SELECT ?x ?y
+WHERE {
+  ?x ?p* ?y .
+}
+```
+
+`?p*`처럼 서술어까지 변수화한 무제한 탐색은 그래프 전체를 순회합니다. 대부분의 트리플스토어에서 타임아웃이 발생합니다.
+
+**권장 접근법:**
+
+| 상황 | 권장 방법 |
+|---|---|
+| 계층 깊이가 제한적 | 명시적 홉 수 지정 (`p/p/p`) |
+| 반복 탐색이 필요 | `p+`를 구체적 서술어에만 사용 |
+| 결과가 방대할 수 있음 | `LIMIT`와 함께 사용 |
+| 성능이 중요 | 물질화(CONSTRUCT) 후 단순 SELECT |
+
+---
+
+## Property Path와 OWL 추론의 차이
+
+Property Path는 **구문적 탐색** 입니다. 반면 OWL 추론기는 의미론적으로 새로운 트리플을 도출합니다.
+
+예를 들어 `rdfs:subClassOf`가 전이적이라는 사실은 RDFS 의미론에 명시되어 있지만, Property Path는 이를 그래프 패턴으로 명시적으로 표현하는 것입니다. 추론기가 없는 환경에서 전이적 관계를 탐색할 때 Property Path가 대안이 됩니다.
+
+단, Property Path는 **순환 그래프** 에서 무한 루프에 빠지지 않습니다. W3C 명세는 Property Path가 각 노드 쌍을 한 번씩만 고려하도록 규정합니다.
+
+---
+
+## 정리
+
+Property Path는 SPARQL의 그래프 탐색 능력을 크게 확장합니다.
+
+- `/` 로 다단계 경로, `|` 로 대안 경로
+- `+` 와 `*` 로 임의 깊이 탐색
+- `^` 로 역방향, `!` 로 부정
+- 성능을 위해 서술어를 구체적으로 지정하고 `LIMIT` 활용
+
+다음 챕터에서는 여러 SPARQL 엔드포인트를 하나의 쿼리에서 연결하는 **Federated Query** 를 다룹니다.

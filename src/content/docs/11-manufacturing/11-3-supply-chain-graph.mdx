@@ -1,0 +1,144 @@
+---
+title: "공급망 그래프와 회복탄력성"
+description: "공급망을 지식 그래프로 표현했을 때 얻을 수 있는 가시성과 회복탄력성 분석 능력을 구체적 패턴과 함께 살펴봅니다."
+sidebar:
+  order: 3
+learning_objectives:
+  - 공급망을 그래프로 모델링할 때의 핵심 노드·엣지 유형을 설명할 수 있다
+  - 공급망 리스크 전파(risk propagation) 분석에서 그래프 순회가 필요한 이유를 서술할 수 있다
+  - 공급망 그래프의 주요 데이터 소스와 통합 방법을 열거할 수 있다
+prerequisites:
+  - "11-2-digital-twin"
+estimated_minutes: 30
+references:
+  - title: "Noy, N. et al. (2019). Industry-scale Knowledge Graphs. ACM Queue"
+    url: "https://queue.acm.org/detail.cfm?id=3332266"
+  - title: "Sáenz, J.P. et al. (2021). A Knowledge Graph Approach for Supply Chain Risk. Applied Sciences"
+    url: "https://doi.org/10.3390/app11115060"
+  - title: "GS1 — Global Supply Chain Standards"
+    url: "https://www.gs1.org/standards"
+  - title: "UN/CEFACT Supply Chain Reference Data Model"
+    url: "https://unece.org/trade/uncefact"
+---
+
+## 공급망 가시성의 문제
+
+2021년 수에즈 운하 에버 기브(Ever Given) 좌초 사건은 공급망 가시성의 중요성을 극적으로 보여줬습니다. 하나의 사건이 전 세계 수천 개 기업의 부품 조달과 생산 계획에 연쇄적으로 영향을 미쳤습니다. 문제는 대부분의 기업이 자신의 1차 공급업체(Tier 1)는 알지만, 그 공급업체의 공급업체(Tier 2, Tier 3)는 잘 모른다는 점입니다.
+
+관계형 데이터베이스로 공급망을 표현하면 계층적 조회가 복잡합니다. "우리 공급망에서 특정 반도체 제조사에 3단계 이내로 의존하는 모든 경로를 찾아라"는 질문을 SQL로 작성하면 재귀 CTE가 필요하고, 구조가 변할 때마다 쿼리를 수정해야 합니다. 그래프 데이터베이스와 SPARQL은 이를 자연스럽게 표현합니다.
+
+---
+
+## 공급망 그래프 모델
+
+공급망 지식 그래프의 기본 온톨로지 구조입니다.
+
+**핵심 노드 유형:**
+
+| 노드 유형 | 예시 | 주요 속성 |
+|---------|------|---------|
+| 기업(Organization) | TSMC, Samsung Electronics | 국가, 산업코드(NAICS), LEI |
+| 시설(Facility) | 대만 팹, 평택 공장 | 위치(WGS84), 생산 용량 |
+| 제품(Product) | 5nm 웨이퍼, DRAM 모듈 | GTIN, HS코드 |
+| 부품(Component) | 리튬, 희토류 원소 | CAS 번호, 원산지 |
+| 계약(Contract) | 장기 공급 계약 | 유효기간, 물량 약정 |
+| 물류 경로(Route) | 부산항 → 함부르크항 | 예상 리드타임, 운송 수단 |
+
+**핵심 엣지 유형:**
+
+- `suppliesTo`: 기업/시설 간 공급 관계
+- `manufactures`: 기업이 제품을 생산
+- `requires`: 제품이 부품을 필요로 함
+- `locatedAt`: 기업이 시설을 운영하는 위치
+- `transportedVia`: 물류 경로 연결
+
+---
+
+## 리스크 전파 분석
+
+그래프 표현의 진가는 리스크 전파 분석에서 드러납니다.
+
+**시나리오:** 특정 국가에서 지진이 발생해 주요 반도체 공장이 가동을 중단했습니다. 이 사건이 우리 제품 라인업에 미치는 영향을 평가해야 합니다.
+
+```sparql
+# 피해 시설에서 3단계 이내 공급망으로 연결된 우리 제품 조회
+SELECT DISTINCT ?product ?affectedFacility ?path WHERE {
+  :AffectedFacility :locatedIn :DisasterZone .
+  :AffectedFacility :manufactures ?component .
+  ?component ^:requires{1,3} ?product .
+  :OurCompany :manufactures ?product .
+}
+```
+
+이 쿼리로 피해 시설과 우리 제품 사이의 경로를 최대 3단계까지 추적합니다. 관계형 DB에서는 사전에 테이블 구조를 설계해야 가능한 분석이지만, 그래프에서는 데이터 구조 변경 없이 재귀적으로 조회합니다.
+
+---
+
+## 대안 공급업체 탐색
+
+리스크가 탐지되면 대안을 빠르게 찾아야 합니다.
+
+```sparql
+# 피해 시설과 같은 컴포넌트를 생산하는 다른 시설 조회
+# (다른 국가에 위치, 현재 여유 용량 보유)
+SELECT ?altFacility ?supplier ?country WHERE {
+  :AffectedFacility :manufactures ?component .
+  ?altFacility :manufactures ?component .
+  FILTER(?altFacility != :AffectedFacility)
+  ?altFacility :locatedIn ?country .
+  FILTER(?country != :DisasterZone)
+  ?altFacility :availableCapacity ?cap .
+  FILTER(?cap > 0)
+  ?supplier :operates ?altFacility .
+}
+```
+
+이처럼 그래프에서는 복잡한 조건의 대안 경로 탐색이 단일 쿼리로 가능합니다.
+
+---
+
+## 데이터 소스 통합
+
+공급망 그래프는 다양한 소스의 데이터를 통합해야 합니다.
+
+**내부 데이터:**
+- ERP 시스템의 구매 발주 이력 (공급업체-제품 관계)
+- PLM 시스템의 BOM(Bill of Materials) (제품-부품 관계)
+- 물류 시스템의 배송 이력 (실제 리드타임)
+
+**외부 데이터:**
+- GS1 표준 (GTIN, GLN으로 제품·위치 식별)
+- GLEIF LEI (공급업체 법인 식별)
+- UN Comtrade (국가 간 무역 통계)
+- OpenStreetMap / 위성 데이터 (시설 위치·운영 상태)
+- 뉴스·SNS (실시간 공급망 이벤트)
+
+이 소스들을 단일 그래프로 통합하는 핵심은 **공통 식별자**입니다. GS1의 GLN(Global Location Number)으로 시설을 식별하고, GLEIF의 LEI로 법인을 식별하면 이질적 소스를 연결할 수 있습니다.
+
+---
+
+## EU 공급망 실사 지침과 데이터 요건
+
+2024년 발효된 EU 기업지속가능성실사지침(CSDDD)은 대형 기업이 자신의 공급망에서 발생하는 인권·환경 리스크를 파악하고 조치를 취하도록 의무화합니다. 이는 공급망 그래프의 필요성을 규제적으로 뒷받침합니다.
+
+구체적으로 기업은 다음을 증명해야 합니다.
+- 직접 공급업체(Tier 1) 및 확인된 간접 공급업체의 실사를 수행했다.
+- 강제 노동, 아동 노동, 심각한 환경 피해가 발생한 공급업체와의 거래를 중단했거나 개선 계획을 수립했다.
+
+이를 위해 공급망을 그래프로 시각화하고, 각 공급업체의 인증 현황(ISO 14001, SA8000 등)을 노드 속성으로 관리하는 것이 효율적입니다.
+
+---
+
+## 구현 시 주의사항
+
+**데이터 접근 제한:** 공급업체는 자신의 공급업체 정보를 경쟁사에 공개하지 않으려 합니다. 직접 데이터 수집이 어려운 Tier 2+ 구간은 추정 또는 업계 표준으로 보완해야 합니다.
+
+**동적 변화:** 공급망은 계약 변경, 공장 이전, 새 공급업체 추가로 지속적으로 변합니다. 그래프 업데이트 파이프라인을 자동화하지 않으면 금방 구식 데이터가 됩니다.
+
+**단위·통화 표준화:** 물량은 kg, 개수, 로트 등 다양한 단위로 표현되고, 금액은 다양한 통화를 사용합니다. 온톨로지에서 단위 변환 관계를 명시적으로 정의해야 합니다.
+
+---
+
+## 정리
+
+공급망 지식 그래프는 기업이 자신의 공급망 전체를 가시화하고, 리스크를 사전에 탐지하며, EU 실사 지침 같은 규제 요건을 충족하는 데 강력한 도구입니다. 다음 챕터에서는 과학 연구 영역의 지식 그래프인 Open Research Knowledge Graph를 살펴봅니다.

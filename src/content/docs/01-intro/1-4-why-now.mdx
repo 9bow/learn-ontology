@@ -1,0 +1,147 @@
+---
+title: "LLM 시대에 다시 떠오른 이유"
+description: "대형 언어 모델(LLM)의 한계와 온톨로지·지식그래프의 강점이 만나는 지점을 분석합니다. 환각, 다중 홉 추론, 감사 가능성 문제를 중심으로."
+sidebar:
+  order: 4
+learning_objectives:
+  - LLM의 구조적 한계(환각, 지식 경계, 추론 불투명성)를 설명할 수 있다
+  - 온톨로지와 지식그래프가 LLM의 어떤 약점을 보완하는지 설명할 수 있다
+  - GraphRAG, Text-to-SPARQL, Neuro-symbolic AI의 개념을 간략히 설명할 수 있다
+prerequisites:
+  - "1-3-vs-taxonomy-kg-erd"
+estimated_minutes: 35
+references:
+  - title: "Pan, J.Z. et al. (2023). Unifying Large Language Models and Knowledge Graphs: A Roadmap. arXiv:2306.08302"
+    url: "https://arxiv.org/abs/2306.08302"
+  - title: "Edge, D. et al. (2024). From Local to Global: A Graph RAG Approach to Query-Focused Summarization. arXiv:2404.16130"
+    url: "https://arxiv.org/abs/2404.16130"
+  - title: "Ji, Z. et al. (2023). Survey of Hallucination in Natural Language Generation. ACM Computing Surveys"
+    url: "https://dl.acm.org/doi/10.1145/3571730"
+  - title: "W3C Knowledge Graph Construction W3C Workshop Report (2019)"
+    url: "https://www.w3.org/Data/events/data-ws-2019/report.html"
+
+---
+
+import Quiz from '../../../components/learning/Quiz.tsx';
+
+## 2022년의 귀환
+
+2000년대 초반 시맨틱 웹(Semantic Web) 운동이 정점에 이르렀을 때, 팀 버너스-리(Tim Berners-Lee)는 "모든 웹 페이지가 기계가 이해할 수 있는 의미를 가질 것"이라고 전망했습니다. 이 비전은 RDF, OWL, SPARQL 등 풍부한 기술 스택을 낳았지만, 대규모 채택에는 이르지 못했습니다. 규모 확장의 어려움, 온톨로지 구축 비용, 표준 준수의 복잡성이 장벽이었습니다.
+
+그러다 2022년 이후 ChatGPT로 촉발된 대형 언어 모델(LLM) 붐 속에서 온톨로지와 지식그래프가 다시 주목받기 시작했습니다. 이번에는 다른 이유에서입니다 — LLM이 가진 구조적 한계를 보완하는 도구로서입니다.
+
+---
+
+## LLM의 세 가지 구조적 한계
+
+### 1. 환각 (Hallucination)
+
+LLM은 그럴듯하지만 사실이 아닌 내용을 자신감 있게 생성합니다. 이를 **환각(hallucination)** 이라 부릅니다. Ziwei Ji 등의 2023년 ACM 서베이에 따르면, 환각은 훈련 데이터의 편향, 토큰 예측 방식의 구조적 특성, 지식 업데이트 불가 등 여러 요인에서 비롯됩니다.
+
+의료, 법률, 금융처럼 **정확성이 생명**인 도메인에서 환각은 치명적입니다. "아스피린과 와파린을 동시에 복용해도 안전하다"는 LLM의 오답은 환자 안전을 위협합니다.
+
+### 2. 지식 경계와 업데이트 불가
+
+LLM은 훈련 데이터의 **컷오프 시점(cutoff date)** 이후의 지식을 알지 못합니다. 새로운 약물 승인, 법령 개정, 조직 개편 등 동적으로 변하는 사실을 반영하지 못합니다.
+
+관계형 데이터베이스나 지식그래프는 실시간으로 업데이트가 가능합니다. 온톨로지 기반 시스템은 새 사실을 추가하면 추론 엔진이 자동으로 새로운 결론을 도출합니다.
+
+### 3. 추론 불투명성 (Black Box Reasoning)
+
+LLM이 "A이기 때문에 B다"라고 말할 때, 그 추론 경로를 검증하기 어렵습니다. 규제가 엄격한 산업(의료 기기 승인, 금융 심사, 법원 판결)에서는 **설명 가능한(explainable) 추론**이 필수입니다.
+
+온톨로지 기반 추론은 공리의 연쇄로 결론에 도달하기 때문에, 모든 추론 단계를 추적하고 감사(audit)할 수 있습니다.
+
+---
+
+## 온톨로지·KG가 LLM을 보완하는 방식
+
+### GraphRAG: 그래프 기반 검색 증강 생성
+
+기존 RAG(Retrieval-Augmented Generation)는 유사도 기반으로 텍스트 청크를 검색해 LLM에 주입합니다. 이 방식은 **다중 홉(multi-hop) 추론** — "A의 부모가 B이고, B가 C 회사의 설립자라면, A의 부모는 어느 회사를 설립했는가?" — 에 취약합니다.
+
+Microsoft Research가 2024년 발표한 **GraphRAG** (arXiv:2404.16130)는 지식그래프를 검색 인프라로 활용합니다. 커뮤니티 요약(community summaries)을 그래프에서 생성하고, 질의 시 관련 서브그래프를 LLM 컨텍스트로 제공합니다.
+
+```
+사용자 질의 → SPARQL/Cypher 변환 → KG 서브그래프 검색
+                                           ↓
+                              LLM (사실 근거 기반 답변 생성)
+```
+
+### Text-to-SPARQL / Text-to-Cypher
+
+LLM이 자연어 질의를 SPARQL이나 Cypher 쿼리로 변환하는 패턴입니다. 온톨로지가 스키마 역할을 하여, LLM이 올바른 클래스명과 속성명을 사용하도록 유도합니다.
+
+```sparql
+# 자연어: "서울에 본사를 둔 IT 기업의 CEO는 누구인가?"
+# LLM이 생성한 SPARQL:
+SELECT ?ceo ?company WHERE {
+  ?company rdf:type :ITCompany ;
+           :headquarteredIn :Seoul ;
+           :hasCEO ?ceo .
+}
+```
+
+온톨로지가 없다면 LLM은 `:ITCompany`라는 클래스명을 알 수 없고, 임의의 문자열을 만들어냅니다.
+
+### Ontology-Guided RAG
+
+온톨로지를 메타데이터 스키마로 사용해 문서를 구조화하고, 검색 시 온톨로지 추론으로 관련 개념을 확장합니다.
+
+예: "심근경색 치료제"를 검색할 때, SNOMED CT 온톨로지를 통해 "항혈소판제", "ACE 억제제" 등 하위 개념을 자동으로 포함시켜 검색 범위를 넓힙니다.
+
+### Neuro-Symbolic AI의 부활
+
+1980~90년대 AI 연구에서 신경망(neural)과 기호주의(symbolic)는 경쟁했습니다. 오늘날 연구자들은 두 패러다임의 결합을 탐구합니다.
+
+- **신경망(LLM)** — 자연어 이해, 패턴 인식, 상식 추론
+- **기호 시스템(온톨로지·KG)** — 형식적 추론, 제약 검증, 감사 가능성
+
+Pan et al. (2023)의 로드맵은 이 결합을 세 가지 유형으로 분류합니다: LLM for KG(LLM이 KG 구축 보조), KG for LLM(KG가 LLM 강화), LLM+KG(양방향 통합).
+
+---
+
+## 산업에서의 실제 동인
+
+### 규제 요구사항 강화
+
+EU AI Act(2024), FDA AI/ML 의료기기 가이던스 등 규제 기관들이 **설명 가능한 AI**를 요구하기 시작했습니다. 온톨로지 기반 추론은 이 요구사항에 자연스럽게 부합합니다.
+
+### 데이터 품질과 거버넌스
+
+데이터 거버넌스 프레임워크(DAMA-DMBOK, FAIR 원칙 등)가 강조하는 **의미적 일관성(semantic consistency)** 은 온톨로지 없이는 달성하기 어렵습니다. "고객(customer)"의 정의가 CRM, ERP, 마케팅 시스템에서 각자 다르면, 회사 전체의 데이터 품질이 흔들립니다.
+
+### Palantir AIP의 사례
+
+Palantir는 Foundry 플랫폼에서 온톨로지를 핵심 추상화 계층으로 채택했습니다. Objects, Links, Actions로 구성된 **Ontology SDK**는 LLM 기반 에이전트(AIP Agent)가 기업 데이터에 안전하게 접근하는 통로입니다. "LLM이 직접 SQL을 실행하면 위험하지만, 온톨로지 액션을 통해서면 권한 통제가 된다"는 원칙입니다. 이 사례는 섹션 06에서 상세히 다룹니다.
+
+---
+
+## 온톨로지가 만능 해결책은 아니다
+
+공정한 평가를 위해 한계도 명시합니다.
+
+- **구축 비용** — 좋은 도메인 온톨로지를 만들려면 도메인 전문가와 온톨로지 엔지니어의 장기 협업이 필요합니다
+- **유지보수 부담** — 도메인이 진화하면 온톨로지도 진화해야 합니다. 버저닝과 거버넌스 없이는 "거버넌스 실패(governance failure)"로 이어집니다
+- **확장성 문제** — OWL Full 같은 표현력 높은 언어는 추론이 결정 불가능(undecidable)합니다. 대규모 데이터에 전체 추론을 적용하면 실용적 성능을 얻기 어렵습니다
+
+이 트레이드오프를 이해하는 것이 온톨로지를 제대로 활용하는 첫걸음입니다.
+
+---
+
+## 요약: 온톨로지가 다시 필요한 이유
+
+| LLM의 한계 | 온톨로지·KG의 보완 |
+|-----------|-----------------|
+| 환각 (사실 오류) | 검증된 사실 그래프로 근거 제공 |
+| 지식 업데이트 불가 | 실시간 업데이트 가능한 KG |
+| 다중 홉 추론 취약 | 그래프 경로 탐색으로 보완 |
+| 추론 불투명 | 공리 기반 감사 가능 추론 |
+| 도메인 용어 혼동 | 온톨로지가 정확한 어휘 제공 |
+| 권한 제어 어려움 | 온톨로지 액션으로 안전한 접근 |
+
+온톨로지는 LLM을 대체하지 않습니다. 온톨로지는 LLM이 신뢰할 수 있는 방식으로 작동하도록 돕는 **구조적 기반**입니다. 이 점을 이해하면, 섹션 02~03에서 배울 기술적 세부 사항들이 단순한 표준 공부가 아니라 실용적 문제 해결의 도구로 보이기 시작합니다.
+
+---
+
+<Quiz section="01-intro" client:load />

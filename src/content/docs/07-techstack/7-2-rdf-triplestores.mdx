@@ -1,0 +1,132 @@
+---
+title: "7-2. RDF 트리플스토어"
+description: "Apache Jena/Fuseki, GraphDB, Stardog, Virtuoso, Amazon Neptune, AllegroGraph, RDFox — 주요 RDF 트리플스토어 비교"
+sidebar:
+  order: 2
+learning_objectives:
+  - "RDF 트리플스토어가 관계형 DB·LPG와 구조적으로 어떻게 다른지 설명할 수 있다"
+  - "각 트리플스토어의 OWL 추론 지원 수준과 SPARQL 1.1 준수도를 비교할 수 있다"
+  - "규모·성능·라이선스 기준으로 트리플스토어를 선택하는 기준을 제시할 수 있다"
+prerequisites:
+  - "RDF 데이터 모델과 SPARQL 기본"
+  - "OWL 2 프로파일 개념"
+estimated_minutes: 35
+references:
+  - title: "Apache Jena 공식 문서"
+    url: "https://jena.apache.org/documentation/"
+  - title: "Ontotext GraphDB 문서"
+    url: "https://graphdb.ontotext.com/documentation/"
+  - title: "Stardog 문서"
+    url: "https://docs.stardog.com/"
+  - title: "OpenLink Virtuoso 문서"
+    url: "https://docs.openlinksw.com/virtuoso/"
+  - title: "Amazon Neptune 개발자 가이드"
+    url: "https://docs.aws.amazon.com/neptune/latest/userguide/"
+  - title: "Franz AllegroGraph 문서"
+    url: "https://franz.com/agraph/support/documentation/current/"
+  - title: "Oxford Semantic Technologies — RDFox 문서"
+    url: "https://docs.oxfordsemantic.tech/"
+---
+
+RDF 트리플스토어(triple store)는 주어-술어-목적어 트리플을 저장하고 SPARQL로 질의하는 데이터베이스다. 관계형 DB가 테이블·행·열을 기본 단위로 쓰는 것과 달리, 트리플스토어는 방향 그래프를 직접 저장하며 추론을 통해 명시되지 않은 지식을 유도할 수 있다.
+
+## Apache Jena / Fuseki (오픈소스)
+
+Apache Jena는 자바 기반 RDF 프레임워크다. TDB2 저장 엔진 위에서 Fuseki HTTP 서버를 띄우면 SPARQL 1.1 엔드포인트로 활용할 수 있다.
+
+**특징:**
+- **TDB2**: 디스크 기반 네이티브 RDF 저장소. 수억 개 트리플까지 단일 노드에서 처리 가능하다.
+- **Fuseki**: SPARQL 1.1 Query/Update/Graph Store Protocol을 완전 지원하는 HTTP 서버.
+- **추론**: RDFS·OWL Micro·OWL Mini 추론을 내장 Rule Reasoner로 지원한다. OWL DL 전체는 외부 추론기(Pellet, HermiT)와 통합이 필요하다.
+- **텍스트 검색**: Lucene·Elasticsearch와 통합해 전문 검색(full-text search)을 SPARQL 안에서 사용할 수 있다.
+
+**한계:** 클러스터링·고가용성 기능이 없다. 대규모 엔터프라이즈 환경에는 Fuseki 단독보다 다른 제품이 적합하다.
+
+## GraphDB (Ontotext, 상용/커뮤니티)
+
+GraphDB는 불가리아의 Ontotext가 개발한 RDF 트리플스토어로, 특히 생명과학·미디어 분야에서 폭넓게 사용된다. 무료 커뮤니티 에디션과 유료 엔터프라이즈 에디션으로 나뉜다.
+
+**특징:**
+- **OWL 2 RL 추론**: 포워드 체이닝 방식으로 OWL 2 RL 규칙을 완전 지원한다. 기본 설정에서 추론이 자동으로 활성화된다.
+- **플러그인 아키텍처**: 커스텀 플러그인으로 외부 Elasticsearch·Lucene·GraphQL을 연결할 수 있다.
+- **연합 질의(Federated Query)**: FedX를 내장해 여러 SPARQL 엔드포인트를 하나의 쿼리로 조회할 수 있다.
+- **Workbench UI**: 웹 기반 관리 인터페이스에서 데이터 가져오기, SPARQL 편집, 클래스 다이어그램 시각화가 가능하다.
+- **클러스터링**: 엔터프라이즈 에디션은 마스터-워커 복제와 읽기 로드 밸런싱을 지원한다.
+
+**적합 사례:** 생명과학 온톨로지(UniProt, GO, SNOMED CT)를 대규모로 로딩하는 데이터 허브, 미디어 메타데이터 KG.
+
+## Stardog (상용)
+
+Stardog는 엔터프라이즈 KG 플랫폼으로 포지셔닝하며 OWL 추론, 가상화, 머신러닝 통합을 강점으로 내세운다.
+
+**특징:**
+- **추론 모드**: QL, RL, EL, DL, SL(Stardog Logic) 다섯 가지 추론 모드를 쿼리 시점에 전환할 수 있다.
+- **Virtual Graphs**: JDBC 드라이버를 통해 관계형 DB·CSV·MongoDB 데이터를 R2RML/SMS2 매핑으로 가상 그래프로 노출한다. 실제 데이터를 이동하지 않고 SPARQL로 질의한다.
+- **Integrity Constraint Validation**: OWL 공리를 제약 조건으로 재해석해 데이터 품질을 검증한다.
+- **Explain**: SPARQL 쿼리 실행 계획과 추론 근거를 설명(explain)하는 기능을 제공한다.
+
+**한계:** 라이선스 비용이 상당하며, 코어 수 기반 과금 모델이다.
+
+## OpenLink Virtuoso (상용/오픈소스)
+
+Virtuoso는 관계형 DB와 RDF 트리플스토어를 하나의 엔진에 통합한 멀티모델 DB다. DBpedia와 Wikidata SPARQL 엔드포인트가 Virtuoso 위에서 운영된다.
+
+**특징:**
+- **컬럼 스토어 + RDF**: 관계형 테이블과 RDF 그래프를 동일 엔진에 저장하며, SQL로도 RDF 데이터를 질의할 수 있다.
+- **대규모 레퍼런스**: DBpedia(~300억 트리플), Wikidata SPARQL 공개 엔드포인트가 Virtuoso를 사용한다.
+- **Linked Data 서빙**: HTTP Content Negotiation으로 RDF/XML, Turtle, JSON-LD를 자동 제공한다.
+- **오픈소스 에디션**: GPL 라이선스 오픈소스 버전이 있으나 상용 에디션 대비 기능이 제한된다.
+
+## Amazon Neptune (관리형 클라우드)
+
+Neptune은 AWS가 제공하는 완전 관리형 그래프 DB 서비스로, RDF/SPARQL과 Property Graph/Gremlin·openCypher 두 모델을 모두 지원한다.
+
+**특징:**
+- **완전 관리형**: 패치, 백업, 복제, 페일오버를 AWS가 처리한다.
+- **RDF 지원**: SPARQL 1.1을 지원하며 RDF 데이터를 S3에서 직접 로딩할 수 있다.
+- **OWL 추론**: 제한적 RDFS 추론만 지원한다. 복잡한 OWL DL 추론은 지원하지 않는다.
+- **Neptune Analytics**: 2023년 출시. 그래프 분석(PageRank, 최단 경로, 커뮤니티 탐지)을 Neptune 데이터에 직접 실행할 수 있는 분석 엔진이다.
+- **ML 통합**: Neptune ML로 그래프 데이터 위에 GNN 모델을 훈련·배포할 수 있다.
+
+**한계:** OWL 추론이 제한적이라 온톨로지 기반 추론이 핵심인 사용 사례에는 적합하지 않다. 벤더 종속.
+
+## AllegroGraph (Franz Inc., 상용/무료 플랜)
+
+AllegroGraph는 Common Lisp 기반의 고성능 트리플스토어로, 특히 Gruff 시각화 도구와 연결된 지식그래프 탐색에 강점이 있다.
+
+**특징:**
+- **SPARQL 1.1 + 확장**: Magic Properties, GeoSPARQL, 시계열 확장을 지원한다.
+- **Prolog 추론**: Lisp/Prolog 기반 추론 규칙을 직접 작성할 수 있다.
+- **Gruff**: 노드-링크 다이어그램으로 KG를 인터랙티브하게 탐색하는 시각화 도구.
+- **무료 플랜**: 500만 트리플 이하 무료 사용 가능.
+
+## RDFox (Oxford Semantic Technologies, 상용)
+
+RDFox는 옥스퍼드 대학에서 스핀오프한 기술로, 인메모리 기반의 고속 Datalog/OWL 추론에 특화된다.
+
+**특징:**
+- **인메모리 아키텍처**: 디스크 I/O 없이 메모리에서 추론하므로 추론 속도가 매우 빠르다.
+- **OWL 2 RL 완전 지원**: Datalog 기반으로 OWL 2 RL 규칙을 효율적으로 실행한다.
+- **증분 추론**: 데이터가 추가되거나 삭제될 때 전체를 재계산하지 않고 영향받는 부분만 업데이트한다.
+- **임베디드 모드**: Java/C++ API로 애플리케이션에 직접 내장할 수 있다.
+
+**적합 사례:** 실시간 IoT 데이터 추론, 고빈도 데이터 변경이 있는 운영 KG.
+
+## 트리플스토어 비교
+
+| 항목 | Jena/Fuseki | GraphDB | Stardog | Virtuoso | Neptune | AllegroGraph | RDFox |
+|------|------------|---------|---------|----------|---------|--------------|-------|
+| 라이선스 | Apache 2 | 커뮤니티/상용 | 상용 | GPL/상용 | 관리형 | 상용/무료 | 상용 |
+| OWL 추론 | Micro/Mini | RL 완전 | QL~DL | 제한적 | RDFS만 | RL + Prolog | RL 완전 |
+| 클러스터링 | 미지원 | 엔터프라이즈 | 지원 | 지원 | 관리형 | 지원 | 지원 |
+| 가상 그래프 | 미지원 | 플러그인 | 네이티브 | SQL 통합 | 미지원 | 미지원 | 미지원 |
+| 특화 영역 | 연구/교육 | 생명과학 | 엔터프라이즈 KG | 공개 Linked Data | AWS 생태계 | 시각화 | 고속 추론 |
+
+## 선택 가이드
+
+- **연구·교육·PoC**: Apache Jena/Fuseki (무료, 커뮤니티 풍부)
+- **생명과학·미디어 KG**: GraphDB (OWL RL 기본, Workbench UI)
+- **엔터프라이즈 가상화**: Stardog (Virtual Graphs로 레거시 DB 통합)
+- **공개 Linked Data 서빙**: Virtuoso (DBpedia 레퍼런스)
+- **AWS 네이티브**: Neptune (관리 부담 최소화, 단 추론 제한)
+- **고속 실시간 추론**: RDFox (인메모리, 증분 추론)

@@ -1,0 +1,308 @@
+---
+title: "4-1. SPARQL 1.1 SELECT 기초"
+description: "SPARQL 1.1 SELECT 쿼리의 구조와 핵심 기능을 실행 가능한 예제 중심으로 학습합니다."
+sidebar:
+  order: 41
+learning_objectives:
+  - "SPARQL의 기본 문법 구조(PREFIX, SELECT, WHERE, FILTER)를 이해한다"
+  - "변수 바인딩, OPTIONAL, UNION, MINUS 패턴을 활용한 쿼리를 작성한다"
+  - "집계 함수(COUNT, SUM, GROUP BY, HAVING)와 솔루션 제한자(ORDER BY, LIMIT, OFFSET)를 사용한다"
+  - "DBpedia·Wikidata 공개 엔드포인트에서 실제 쿼리를 실행한다"
+prerequisites:
+  - "RDF 트리플 구조(주어·서술어·목적어)"
+  - "URI와 접두사(prefix) 개념"
+estimated_minutes: 35
+references:
+  - title: "W3C. SPARQL 1.1 Query Language (2013)"
+    url: "https://www.w3.org/TR/sparql11-query/"
+  - title: "DuCharme, B. Learning SPARQL 2nd ed. O'Reilly (2013)"
+    url: "https://www.oreilly.com/library/view/learning-sparql/9781449371784/"
+  - title: "Wikidata Query Service"
+    url: "https://query.wikidata.org/"
+  - title: "DBpedia SPARQL Endpoint"
+    url: "https://dbpedia.org/sparql"
+---
+
+## SPARQL이란
+
+SPARQL(SPARQL Protocol and RDF Query Language)은 W3C가 표준화한 RDF 데이터 질의 언어입니다. 이름이 재귀 약어인 점은 접어두고, 핵심만 말하면 "RDF 그래프 위에서 SQL과 유사한 방식으로 패턴 매칭을 수행하는 언어"입니다.
+
+SQL이 테이블의 행을 찾는다면, SPARQL은 **그래프의 트리플 패턴** 을 찾습니다. 변수는 `?` 또는 `$`로 시작하고, 쿼리 엔진은 변수를 RDF 그래프의 실제 값에 바인딩해 결과 집합을 반환합니다.
+
+SPARQL 1.1은 2013년 W3C 권고안으로 확정되었고, 현재 대부분의 트리플스토어(Fuseki, GraphDB, Stardog, Virtuoso, Amazon Neptune 등)가 지원합니다.
+
+---
+
+## 기본 문법 구조
+
+```sparql
+PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl:  <http://www.w3.org/2002/07/owl#>
+
+SELECT ?subject ?predicate ?object
+WHERE {
+  ?subject ?predicate ?object .
+}
+LIMIT 10
+```
+
+구성 요소를 순서대로 살펴봅니다.
+
+| 절 | 역할 |
+|---|---|
+| `PREFIX` | 긴 URI를 짧은 접두사로 대체 |
+| `SELECT` | 반환할 변수 목록 지정 (`*`는 모든 변수) |
+| `WHERE` | 그래프 패턴(트리플 패턴의 집합) |
+| `FILTER` | 변수 값 조건 제한 |
+| `ORDER BY` | 결과 정렬 |
+| `LIMIT / OFFSET` | 페이징 |
+
+---
+
+## 예제 1: DBpedia에서 한국 도시 조회
+
+DBpedia는 Wikipedia에서 자동 추출한 대형 RDF 데이터셋입니다. 엔드포인트: `https://dbpedia.org/sparql`
+
+```sparql
+PREFIX dbo:  <http://dbpedia.org/ontology/>
+PREFIX dbr:  <http://dbpedia.org/resource/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?city ?name ?population
+WHERE {
+  ?city a dbo:City ;
+        dbo:country dbr:South_Korea ;
+        rdfs:label ?name ;
+        dbo:populationTotal ?population .
+  FILTER (lang(?name) = "ko")
+  FILTER (?population > 500000)
+}
+ORDER BY DESC(?population)
+LIMIT 10
+```
+
+**핵심 포인트:**
+- 세미콜론(`;`)은 주어를 공유하는 트리플을 연결합니다
+- `lang()` 함수로 리터럴의 언어 태그를 필터링합니다
+- `DESC()`는 내림차순 정렬
+
+---
+
+## 예제 2: OPTIONAL — 선택적 속성 포함
+
+OPTIONAL은 LEFT OUTER JOIN에 해당합니다. 매칭되지 않아도 나머지 바인딩은 유지됩니다.
+
+```sparql
+PREFIX dbo:  <http://dbpedia.org/ontology/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?person ?name ?birthDate ?deathDate
+WHERE {
+  ?person a dbo:Scientist ;
+          rdfs:label ?name .
+  FILTER (lang(?name) = "en")
+
+  OPTIONAL { ?person dbo:birthDate ?birthDate . }
+  OPTIONAL { ?person dbo:deathDate ?deathDate . }
+}
+LIMIT 20
+```
+
+`deathDate`가 없는 생존 인물도 결과에 포함되고, 해당 변수는 `UNBOUND` 상태로 반환됩니다.
+
+---
+
+## 예제 3: UNION — 복수 패턴 병합
+
+```sparql
+PREFIX dbo:  <http://dbpedia.org/ontology/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT DISTINCT ?entity ?name
+WHERE {
+  { ?entity a dbo:University ; rdfs:label ?name . }
+  UNION
+  { ?entity a dbo:College ; rdfs:label ?name . }
+  FILTER (lang(?name) = "ko")
+}
+ORDER BY ?name
+LIMIT 30
+```
+
+UNION은 두 그래프 패턴 중 하나 이상이 매칭되는 모든 결과를 합칩니다. SQL의 `UNION`과 달리 **중복을 자동 제거하지 않으므로** `DISTINCT`를 별도로 붙여야 합니다.
+
+---
+
+## 예제 4: 집계 함수와 GROUP BY
+
+```sparql
+PREFIX dbo:  <http://dbpedia.org/ontology/>
+
+SELECT ?country (COUNT(?city) AS ?cityCount)
+WHERE {
+  ?city a dbo:City ;
+        dbo:country ?country .
+}
+GROUP BY ?country
+HAVING (COUNT(?city) > 10)
+ORDER BY DESC(?cityCount)
+LIMIT 15
+```
+
+SPARQL 1.1에서 추가된 집계 함수: `COUNT`, `SUM`, `MIN`, `MAX`, `AVG`, `GROUP_CONCAT`, `SAMPLE`
+
+`HAVING`은 집계 후 필터링으로, SQL의 HAVING과 동일한 역할입니다.
+
+---
+
+## 예제 5: Wikidata에서 노벨상 수상자 조회
+
+Wikidata는 위키미디어 재단의 공개 지식 그래프입니다. 엔드포인트: `https://query.wikidata.org/sparql`
+
+```sparql
+PREFIX wd:  <http://www.wikidata.org/entity/>
+PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?person ?personLabel ?awardYear ?countryLabel
+WHERE {
+  ?person wdt:P166 wd:Q7191 .         # 노벨 물리학상 수상
+  ?person wdt:P569 ?birthDate .
+  ?person wdt:P27 ?country .
+
+  OPTIONAL { ?person wdt:P585 ?awardYear . }
+
+  SERVICE wikibase:label {
+    bd:serviceParam wikibase:language "ko,en" .
+  }
+}
+ORDER BY DESC(?awardYear)
+LIMIT 20
+```
+
+Wikidata는 `wikibase:label` SERVICE를 통해 사람이 읽을 수 있는 레이블을 자동 바인딩합니다. `?personLabel`처럼 변수 뒤에 `Label`을 붙이면 해당 엔티티의 레이블로 자동 치환됩니다.
+
+---
+
+## FILTER 표현식 참조
+
+| 함수/연산자 | 설명 | 예시 |
+|---|---|---|
+| `=`, `!=`, `<`, `>`, `<=`, `>=` | 비교 | `FILTER (?age > 18)` |
+| `&&`, `\|\|`, `!` | 논리 AND/OR/NOT | `FILTER (?x > 0 && ?x < 100)` |
+| `regex()` | 정규식 매칭 | `FILTER regex(?name, "^Kim", "i")` |
+| `lang()` | 언어 태그 | `FILTER (lang(?label) = "ko")` |
+| `datatype()` | 데이터 타입 | `FILTER (datatype(?val) = xsd:integer)` |
+| `BOUND()` | 변수 바인딩 여부 | `FILTER BOUND(?deathDate)` |
+| `isIRI()` | IRI 여부 확인 | `FILTER isIRI(?subject)` |
+| `str()` | 리터럴을 문자열로 | `FILTER (str(?val) = "Korea")` |
+
+---
+
+## SELECT 절의 표현식
+
+SPARQL 1.1부터 SELECT 절에서 표현식을 직접 계산할 수 있습니다.
+
+```sparql
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX dbo: <http://dbpedia.org/ontology/>
+
+SELECT ?city
+       ?population
+       (xsd:integer(?population) / 1000000 AS ?populationM)
+WHERE {
+  ?city a dbo:City ;
+        dbo:populationTotal ?population .
+  FILTER (?population > 1000000)
+}
+ORDER BY DESC(?population)
+```
+
+`AS` 키워드로 계산 결과를 새 변수에 바인딩합니다.
+
+---
+
+## MINUS — 차집합 패턴
+
+```sparql
+PREFIX dbo:  <http://dbpedia.org/ontology/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?person ?name
+WHERE {
+  ?person a dbo:Philosopher ;
+          rdfs:label ?name .
+  FILTER (lang(?name) = "en")
+
+  MINUS {
+    ?person dbo:deathDate ?death .
+  }
+}
+LIMIT 20
+```
+
+MINUS는 두 번째 패턴에 매칭되는 해를 제외합니다. `OPTIONAL + FILTER(!BOUND(...))` 조합으로도 동일한 효과를 낼 수 있지만, MINUS가 의미가 더 명확합니다.
+
+---
+
+## VALUES — 인라인 데이터
+
+```sparql
+PREFIX wd:  <http://www.wikidata.org/entity/>
+PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+
+SELECT ?company ?foundedLabel
+WHERE {
+  VALUES ?company {
+    wd:Q312    # Apple
+    wd:Q37158  # Google
+    wd:Q9662   # Samsung
+  }
+  ?company wdt:P571 ?founded .
+
+  SERVICE wikibase:label {
+    bd:serviceParam wikibase:language "ko,en" .
+  }
+}
+```
+
+VALUES는 변수에 대한 인라인 데이터 바인딩입니다. SQL의 `IN (...)` 절과 유사하지만 다중 변수를 동시에 바인딩할 수 있습니다.
+
+---
+
+## 쿼리 실행 환경
+
+| 엔드포인트 | URL | 특징 |
+|---|---|---|
+| DBpedia | `https://dbpedia.org/sparql` | Wikipedia 기반, 대형 범용 KG |
+| Wikidata | `https://query.wikidata.org/sparql` | 구조화 위키, 다국어 레이블 |
+| Linked Geo Data | `https://linkedgeodata.org/sparql` | OSM 지리 데이터 |
+| EU Publications Office | `https://publications.europa.eu/webapi/rdf/sparql` | EU 법령·공식 데이터 |
+
+로컬 개발 환경에서는 Apache Jena Fuseki를 Docker로 구동하는 방법이 가장 빠릅니다:
+
+```bash
+docker run -p 3030:3030 \
+  -e ADMIN_PASSWORD=admin \
+  stain/jena-fuseki
+```
+
+브라우저에서 `http://localhost:3030`을 열면 SPARQL UI를 통해 쿼리를 실행할 수 있습니다.
+
+---
+
+## 정리
+
+SPARQL SELECT는 RDF 그래프에 대한 패턴 매칭 질의입니다. 이번 챕터에서 다룬 핵심 요소를 정리합니다.
+
+- **기본 트리플 패턴** : 주어·서술어·목적어의 조합으로 매칭
+- **OPTIONAL** : 선택적 속성(LEFT OUTER JOIN)
+- **UNION** : 복수 패턴의 합집합
+- **MINUS** : 차집합으로 특정 패턴 제외
+- **FILTER** : 조건 기반 결과 필터링
+- **GROUP BY / HAVING** : 집계와 집계 후 필터
+- **VALUES** : 인라인 데이터 바인딩
+- **ORDER BY / LIMIT / OFFSET** : 결과 정렬·페이징
+
+다음 챕터에서는 SELECT 외의 질의 형식인 CONSTRUCT, ASK, DESCRIBE를 다룹니다.

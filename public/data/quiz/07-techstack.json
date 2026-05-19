@@ -1,0 +1,182 @@
+[
+  {
+    "id": "q1",
+    "question": "Protégé의 주된 용도는?",
+    "options": [
+      "SPARQL 엔드포인트 서버",
+      "OWL 온톨로지를 시각적으로 편집하는 데스크탑 도구",
+      "RDF 데이터를 저장하는 트리플 스토어",
+      "LPG(레이블 속성 그래프) 데이터베이스"
+    ],
+    "answer": 1,
+    "explanation": "Protégé는 Stanford에서 개발한 오픈소스 온톨로지 편집기로, OWL 온톨로지를 GUI 환경에서 시각적으로 설계·편집하고 추론기를 실행할 수 있습니다."
+  },
+  {
+    "id": "q2",
+    "question": "트리플 스토어(Triple Store)와 관계형 데이터베이스의 가장 큰 구조적 차이는?",
+    "options": [
+      "트리플 스토어는 데이터를 주어-서술어-목적어 형태로 저장하고, RDBMS는 테이블-행-열로 저장한다",
+      "트리플 스토어는 트랜잭션을 지원하지 않는다",
+      "트리플 스토어는 텍스트 데이터만 저장할 수 있다",
+      "트리플 스토어는 SQL로만 질의할 수 있다"
+    ],
+    "answer": 0,
+    "explanation": "트리플 스토어는 RDF 트리플(주어-서술어-목적어)을 기본 저장 단위로 사용하고 SPARQL로 질의합니다. RDBMS는 테이블 구조와 SQL을 사용합니다."
+  },
+  {
+    "id": "q3",
+    "question": "GraphDB, Stardog, Amazon Neptune 중 Amazon Neptune의 특징은?",
+    "options": [
+      "오픈소스 트리플 스토어로 로컬 설치만 지원",
+      "AWS에서 제공하는 완전 관리형 그래프 데이터베이스로 RDF와 LPG를 모두 지원",
+      "SPARQL만 지원하고 Cypher는 지원하지 않는다",
+      "Protégé와 직접 통합되는 유일한 클라우드 서비스"
+    ],
+    "answer": 1,
+    "explanation": "Amazon Neptune은 AWS의 완전 관리형 그래프 데이터베이스로, SPARQL(RDF)과 Gremlin/openCypher(LPG) 두 가지 모델을 모두 지원합니다."
+  },
+  {
+    "id": "q4",
+    "question": "LPG(Label Property Graph)와 RDF 그래프 모델의 차이점으로 옳은 것은?",
+    "options": [
+      "LPG는 엣지에 속성을 직접 붙일 수 있지만, 기본 RDF는 엣지에 속성을 직접 추가할 수 없다",
+      "RDF는 엣지에 속성을 붙일 수 있지만 LPG는 불가능하다",
+      "LPG와 RDF는 동일한 데이터 모델이다",
+      "LPG는 SPARQL을, RDF는 Cypher를 사용한다"
+    ],
+    "answer": 0,
+    "explanation": "LPG는 노드와 엣지 모두 속성(key-value)을 직접 가질 수 있습니다. 기본 RDF 트리플은 엣지(서술어)에 속성을 직접 붙이지 못하며, 이를 위해 RDF-star나 Named Graph를 활용합니다."
+  },
+  {
+    "id": "q5",
+    "question": "Ontop이 수행하는 역할은?",
+    "options": [
+      "OWL 온톨로지를 시각화하는 도구",
+      "관계형 데이터베이스 위에 온톨로지 레이어를 올려 SPARQL 쿼리를 SQL로 변환(매핑)",
+      "RDF 데이터를 Neo4j로 마이그레이션",
+      "SHACL 검증을 자동화하는 도구"
+    ],
+    "answer": 1,
+    "explanation": "Ontop은 SPARQL-to-SQL 변환 기반의 Virtual Knowledge Graph 시스템입니다. RDB 데이터를 복사하지 않고 SPARQL 쿼리를 SQL로 재작성하여 실행합니다."
+  },
+  {
+    "id": "q6",
+    "question": "HermiT와 RDFox는 어떤 역할을 하는 도구인가?",
+    "options": [
+      "RDF 데이터를 저장하는 트리플 스토어",
+      "OWL 온톨로지 추론기(Reasoner)",
+      "온톨로지 편집 GUI 도구",
+      "SPARQL 쿼리 최적화 미들웨어"
+    ],
+    "answer": 1,
+    "explanation": "HermiT와 RDFox는 OWL 공리를 분석하여 암묵적 사실을 추론하고, 온톨로지 일관성을 검사하는 추론기(Reasoner)입니다. HermiT는 완전성을 보장하고, RDFox는 고성능 인메모리 추론에 강점이 있습니다."
+  },
+  {
+    "id": "q7",
+    "question": "Neo4j가 주로 사용하는 쿼리 언어는?",
+    "options": [
+      "SPARQL",
+      "SQL",
+      "Cypher",
+      "GREMLIN만"
+    ],
+    "answer": 2,
+    "explanation": "Neo4j는 LPG 데이터베이스로, 기본 쿼리 언어는 Cypher입니다. Gremlin도 일부 지원하지만 Cypher가 Neo4j의 주 언어입니다."
+  },
+  {
+    "id": "q8",
+    "question": "클라우드 관리형 그래프 데이터베이스를 선택할 때의 주된 장점은?",
+    "options": [
+      "오픈소스라서 비용이 없다",
+      "인프라 관리(패치, 백업, 확장)를 클라우드 제공자가 담당하여 운영 부담이 줄어든다",
+      "로컬 환경보다 항상 성능이 뛰어나다",
+      "W3C 표준을 더 엄격하게 준수한다"
+    ],
+    "answer": 1,
+    "explanation": "클라우드 관리형 서비스(예: Amazon Neptune, Azure Cosmos DB)는 서버 패치, 백업, 가용성 관리 등 인프라 운영을 클라우드 제공자가 담당하므로 팀이 데이터 활용에 집중할 수 있습니다."
+  },
+  {
+    "id": "q9",
+    "question": "Stardog의 특징적 기능으로 알려진 것은?",
+    "options": [
+      "오직 LPG 모델만 지원",
+      "Virtual Graph 기능으로 외부 데이터 소스를 RDF처럼 쿼리",
+      "Cypher만 지원하고 SPARQL은 미지원",
+      "온톨로지 편집 GUI 내장"
+    ],
+    "answer": 1,
+    "explanation": "Stardog은 Virtual Graph 기능을 통해 관계형 DB, NoSQL, CSV 등 외부 데이터를 물리적으로 복사하지 않고 RDF/SPARQL로 가상 접근할 수 있는 엔터프라이즈 트리플 스토어입니다."
+  },
+  {
+    "id": "q10",
+    "question": "RDF 트리플 스토어와 LPG 데이터베이스 중 표준 기반 상호운용성이 더 높은 것은?",
+    "options": [
+      "LPG 데이터베이스 (Cypher는 ISO 표준이므로)",
+      "RDF 트리플 스토어 (W3C SPARQL, RDF 표준 기반)",
+      "두 모델의 상호운용성은 동일하다",
+      "상호운용성은 데이터 모델과 무관하다"
+    ],
+    "answer": 1,
+    "explanation": "RDF 트리플 스토어는 W3C의 RDF, SPARQL, OWL 표준을 따르므로 다른 RDF 시스템과의 상호운용성이 높습니다. LPG는 GQL(ISO 39075)이 제정되었지만 생태계는 아직 덜 표준화되어 있습니다."
+  },
+  {
+    "id": "q11",
+    "question": "온톨로지 기반 데이터 통합에서 '매핑(mapping)'의 역할은?",
+    "options": [
+      "온톨로지를 지리적 지도로 시각화",
+      "원본 데이터(CSV, DB 등)의 구조를 온톨로지 개념과 연결하는 변환 규칙 정의",
+      "두 온톨로지의 클래스를 병합",
+      "SPARQL 쿼리를 자동 생성"
+    ],
+    "answer": 1,
+    "explanation": "매핑은 원본 데이터(CSV 컬럼, DB 테이블 등)의 구조적 요소를 온톨로지의 Class·Property와 연결하는 변환 규칙입니다. R2RML, RML 같은 표준 매핑 언어가 사용됩니다."
+  },
+  {
+    "id": "q12",
+    "question": "GraphDB가 트리플 스토어 시장에서 갖는 특징은?",
+    "options": [
+      "LPG 전용 데이터베이스",
+      "Ontotext가 개발한 RDF 트리플 스토어로 OWL 추론과 SPARQL을 지원하며 대규모 그래프에 강점",
+      "오직 로컬 설치만 지원하는 오픈소스 도구",
+      "SHACL 검증 전용 도구"
+    ],
+    "answer": 1,
+    "explanation": "GraphDB(Ontotext)는 네이티브 RDF 트리플 스토어로 OWL 추론, SPARQL, SHACL을 지원하며, 대규모 엔터프라이즈 환경과 의미론적 검색에 강점이 있습니다."
+  },
+  {
+    "id": "q13",
+    "question": "온톨로지 기술 스택 선택 시 '추론 필요 여부'가 중요한 이유는?",
+    "options": [
+      "추론 기능이 없으면 SPARQL 쿼리를 실행할 수 없다",
+      "추론 기능은 상당한 연산 비용이 따르므로 필요성에 따라 추론기 포함 여부를 결정해야 한다",
+      "추론 기능이 있으면 데이터를 저장할 수 없다",
+      "추론은 LPG 데이터베이스에서만 작동한다"
+    ],
+    "answer": 1,
+    "explanation": "OWL 추론은 논리적으로 풍부한 결과를 제공하지만 연산 비용이 큽니다. 단순 데이터 저장·검색이 목적이라면 추론 없는 경량 트리플 스토어가 적합하고, 복잡한 추론이 필요하면 HermiT·RDFox·추론 내장 트리플 스토어를 선택합니다."
+  },
+  {
+    "id": "q14",
+    "question": "R2RML(RDB to RDF Mapping Language)의 용도는?",
+    "options": [
+      "RDF 데이터를 관계형 데이터베이스로 변환",
+      "관계형 데이터베이스의 구조와 데이터를 RDF로 매핑하는 W3C 표준",
+      "OWL 온톨로지를 JSON Schema로 변환",
+      "SPARQL 쿼리를 SQL로 자동 변환"
+    ],
+    "answer": 1,
+    "explanation": "R2RML은 W3C 표준으로, 관계형 데이터베이스의 테이블·컬럼 구조를 RDF 클래스·속성으로 매핑하는 규칙을 정의합니다. 이를 통해 기존 RDB 데이터를 RDF/온톨로지로 노출할 수 있습니다."
+  },
+  {
+    "id": "q15",
+    "question": "Protégé에서 추론기를 실행하면 얻을 수 있는 결과가 아닌 것은?",
+    "options": [
+      "클래스 계층의 논리적 일관성 검사",
+      "명시되지 않은 클래스 멤버십의 자동 추론",
+      "온톨로지의 SPARQL 엔드포인트 자동 생성",
+      "동치 클래스·개체 감지"
+    ],
+    "answer": 2,
+    "explanation": "Protégé의 추론기(HermiT, Pellet 등)는 일관성 검사, 클래스 분류, 멤버십 추론, 동치 감지를 수행합니다. SPARQL 엔드포인트 생성은 트리플 스토어의 기능이며, Protégé의 추론기 기능이 아닙니다."
+  }
+]

@@ -1,0 +1,123 @@
+---
+title: "7-3. LPG 그래프 데이터베이스"
+description: "Neo4j, TigerGraph, Memgraph, ArangoDB — 레이블 프로퍼티 그래프 DB와 RDF 트리플스토어의 차이, 선택 기준"
+sidebar:
+  order: 3
+learning_objectives:
+  - "LPG(Label Property Graph) 모델과 RDF 모델의 구조적 차이를 설명할 수 있다"
+  - "Neo4j, TigerGraph, Memgraph, ArangoDB 각각의 강점과 적합 사용 사례를 비교할 수 있다"
+  - "온톨로지 기반 시스템에서 RDF 대신 LPG를 선택해야 하는 조건을 판단할 수 있다"
+prerequisites:
+  - "RDF 데이터 모델 기본"
+  - "그래프 이론 기초 (노드, 엣지, 경로)"
+estimated_minutes: 30
+references:
+  - title: "Neo4j — Graph Data Science Library"
+    url: "https://neo4j.com/docs/graph-data-science/"
+  - title: "TigerGraph 공식 문서"
+    url: "https://docs.tigergraph.com/"
+  - title: "Memgraph 공식 문서"
+    url: "https://memgraph.com/docs"
+  - title: "ArangoDB 공식 문서"
+    url: "https://docs.arangodb.com/"
+---
+
+레이블 프로퍼티 그래프(Label Property Graph, LPG)는 노드와 엣지 각각에 레이블(타입)과 프로퍼티(key-value)를 직접 붙이는 그래프 모델이다. RDF가 트리플 단위로 모든 것을 표현하는 것과 달리, LPG는 객체 지향적 표현이 자연스럽고 개발자 친화적인 API를 제공한다.
+
+## RDF vs LPG 핵심 차이
+
+| 항목 | RDF | LPG |
+|------|-----|-----|
+| 기본 단위 | 트리플 (S-P-O) | 노드 + 엣지 + 프로퍼티 |
+| 식별자 | IRI (전역 고유) | 내부 ID 또는 속성 |
+| 스키마 | OWL/SHACL (선택적) | 레이블 + 제약 (선택적) |
+| 쿼리 언어 | SPARQL | Cypher, Gremlin, GSQL, GQL |
+| 추론 | OWL 공리 기반 | 없음 (또는 절차적) |
+| 상호운용성 | Linked Data 표준 | 벤더별 상이 |
+| 엣지 프로퍼티 | RDF-star로 가능 | 기본 지원 |
+
+**언제 LPG를 선택하는가?**
+
+- 전역 IRI 기반 Linked Data 상호운용이 필요하지 않을 때
+- 개발팀이 Cypher/Gremlin에 익숙하고 OWL 추론이 불필요할 때
+- 실시간 그래프 알고리즘(최단 경로, PageRank, 커뮤니티 탐지)이 핵심 요구 사항일 때
+- 트랜잭션 처리와 OLTP 성격의 그래프 질의가 주를 이룰 때
+
+**언제 RDF를 선택하는가?**
+
+- 여러 조직 간 데이터 통합에 표준 IRI와 온톨로지가 필요할 때
+- OWL 추론으로 묵시적 지식을 유도해야 할 때
+- SPARQL Federation으로 외부 엔드포인트와 연합 질의해야 할 때
+
+## Neo4j
+
+Neo4j는 가장 널리 알려진 LPG 데이터베이스로, 2007년 출시 이후 그래프 DB 시장을 사실상 주도해 왔다.
+
+**특징:**
+- **Cypher 쿼리 언어**: `MATCH (n:Person)-[:KNOWS]->(m)` 형태의 직관적 패턴 매칭 문법. ISO GQL 표준의 기반이 됐다.
+- **ACID 트랜잭션**: 완전한 ACID 트랜잭션을 지원해 금융·운영 시스템에 적합하다.
+- **Graph Data Science Library**: PageRank, Louvain 커뮤니티 탐지, Node2Vec, FastRP 등 50개 이상의 그래프 알고리즘을 CALL 프로시저로 실행할 수 있다.
+- **Neo4j Aura**: 완전 관리형 클라우드 서비스로 AuraDB(OLTP)와 AuraDS(분석)를 제공한다.
+- **GenAI 통합**: LangChain·LlamaIndex 연동, Vector Index를 내장해 그래프 + 벡터 하이브리드 검색을 지원한다.
+- **OWL 임포트**: neosemantics(n10s) 플러그인으로 RDF/OWL을 Neo4j LPG로 변환해 가져올 수 있다. 단, 추론은 지원하지 않는다.
+
+**한계:** 대규모 클러스터 확장 비용이 높다. 엔터프라이즈 라이선스 없이는 클러스터링이 제한된다.
+
+## TigerGraph
+
+TigerGraph는 대규모 실시간 분석에 특화된 그래프 DB로, 분산 아키텍처와 독자적인 GSQL 언어를 사용한다.
+
+**특징:**
+- **GSQL**: SQL과 유사한 문법에 그래프 순회 의미론을 결합한 독자 쿼리 언어. 저장 프로시저(Installed Query)를 컴파일해 밀리초 수준 응답을 달성한다.
+- **분산 네이티브**: 수백억 노드/엣지를 수십 개 서버에 분산해 처리하도록 설계됐다.
+- **실시간 분석**: 데이터 수집과 동시에 그래프 알고리즘을 실행하는 HTAP(Hybrid Transactional/Analytical Processing) 아키텍처.
+- **적합 사례**: 금융 사기 탐지, 공급망 추적, 사이버 보안 위협 그래프처럼 수십 홉 경로 탐색이 필요한 대규모 실시간 분석.
+
+**한계:** GSQL 학습 곡선이 가파르다. Cypher보다 쿼리 작성이 복잡하다.
+
+## Memgraph
+
+Memgraph는 인메모리 아키텍처 기반의 고속 LPG 데이터베이스로, Cypher를 쿼리 언어로 사용해 Neo4j 호환성을 갖춘다.
+
+**특징:**
+- **인메모리 + 디스크 영속성**: 기본 동작은 인메모리로 초저지연을 달성하며, WAL(Write-Ahead Log)과 스냅샷으로 내구성을 보장한다.
+- **MAGE**: Memgraph Advanced Graph Extensions. Python/C++로 커스텀 그래프 알고리즘을 작성하고 CALL 프로시저로 호출할 수 있다.
+- **스트리밍 통합**: Kafka, Redpanda 등 메시지 브로커에서 실시간으로 데이터를 수집하며 그래프를 업데이트한다.
+- **Cypher 호환**: Neo4j용 Cypher 쿼리 대부분을 그대로 실행할 수 있어 Neo4j에서 마이그레이션하기 쉽다.
+- **오픈소스**: BSL 라이선스 오픈소스. 커뮤니티 에디션은 무료로 사용 가능하다.
+
+**적합 사례:** 실시간 추천 시스템, 네트워크 토폴로지 분석, 스트리밍 데이터 기반 이상 탐지.
+
+## ArangoDB
+
+ArangoDB는 문서, 키-값, 그래프를 하나의 엔진에서 지원하는 멀티모델 데이터베이스다.
+
+**특징:**
+- **AQL**: ArangoDB Query Language. 그래프 순회(GRAPH_TRAVERSAL), 문서 조회, 집계를 하나의 쿼리로 표현한다.
+- **멀티모델**: 동일 데이터를 문서(JSON), 그래프, 키-값으로 동시에 접근할 수 있다. 컬렉션(collection)이 문서와 엣지 모두에 사용된다.
+- **스마트 그래프**: 엔터프라이즈 에디션에서 샤딩 전략을 그래프 구조에 맞게 최적화해 분산 환경에서 크로스-샤드 쿼리를 최소화한다.
+- **오픈소스**: Apache 2 라이선스 커뮤니티 에디션. 엔터프라이즈 기능은 유료.
+
+**적합 사례:** 그래프와 문서 구조가 혼재하는 데이터(예: 콘텐츠 관리 + 관계 그래프), 마이크로서비스 아키텍처에서 단일 DB로 여러 모델 처리.
+
+## LPG 도구 비교
+
+| 항목 | Neo4j | TigerGraph | Memgraph | ArangoDB |
+|------|-------|-----------|----------|----------|
+| 라이선스 | 커뮤니티(GPL)/상용 | 상용 | BSL/상용 | Apache 2/상용 |
+| 쿼리 언어 | Cypher, GQL | GSQL | Cypher | AQL |
+| 아키텍처 | 디스크 기반 | 분산 네이티브 | 인메모리 | 멀티모델 |
+| 그래프 알고리즘 | GDS 라이브러리 | 내장 분석 | MAGE | 기본 순회 |
+| 스트리밍 | 제한적 | 실시간 HTAP | Kafka 네이티브 | 제한적 |
+| 클라우드 관리형 | Aura | TigerGraph Cloud | Memgraph Cloud | ArangoGraph |
+| RDF 임포트 | n10s 플러그인 | 미지원 | 미지원 | 미지원 |
+
+## 온톨로지와 LPG의 결합 패턴
+
+온톨로지로 개념 스키마를 정의하되, 운영 데이터는 LPG에 저장하는 하이브리드 패턴이 실무에서 자주 쓰인다.
+
+1. **온톨로지 레이어 (RDF/OWL)**: 클래스 계층, 제약 조건, 추론 규칙 정의
+2. **운영 데이터 레이어 (Neo4j/TigerGraph)**: 고속 트랜잭션 처리, 실시간 그래프 알고리즘
+3. **매핑**: R2RML이나 커스텀 ETL로 LPG 데이터를 필요 시 RDF로 변환해 SPARQL 질의
+
+이 패턴은 RDF의 표현력과 LPG의 성능을 동시에 활용할 수 있지만, 두 레이어 간 동기화 관리 부담이 생긴다.

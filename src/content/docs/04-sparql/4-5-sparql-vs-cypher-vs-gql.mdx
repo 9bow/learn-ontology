@@ -1,0 +1,234 @@
+---
+title: "4-5. SPARQL vs Cypher vs GQL 비교"
+description: "그래프 질의 언어 세 가지—SPARQL, Cypher, GQL(ISO/IEC 39075:2024)—의 설계 철학, 문법, 표현력, 적합한 사용 맥락을 비교합니다."
+sidebar:
+  order: 45
+learning_objectives:
+  - "SPARQL, Cypher, GQL의 설계 목표 차이를 설명한다"
+  - "동일한 질의를 세 언어로 표현하고 문법 차이를 파악한다"
+  - "각 언어의 강점과 한계를 기반으로 기술 선택 근거를 제시한다"
+  - "GQL이 ISO 표준으로 확정된 의미와 산업 영향을 이해한다"
+prerequisites:
+  - "4-1: SPARQL SELECT 기초"
+  - "RDF 트리플과 LPG(레이블 속성 그래프) 모델의 차이"
+estimated_minutes: 35
+references:
+  - title: "W3C. SPARQL 1.1 Query Language (2013)"
+    url: "https://www.w3.org/TR/sparql11-query/"
+  - title: "ISO/IEC 39075:2024 — GQL: Graph Query Language"
+    url: "https://www.iso.org/standard/76120.html"
+  - title: "Neo4j. Cypher Query Language Reference"
+    url: "https://neo4j.com/docs/cypher-manual/current/"
+  - title: "Angles et al. Foundations of Modern Query Languages for Graph Databases. ACM CSUR (2017)"
+    url: "https://doi.org/10.1145/3104031"
+---
+
+## 세 언어, 세 가지 세계관
+
+그래프 데이터를 질의하는 언어는 하나가 아닙니다. 현재 산업에서 실질적으로 사용되는 그래프 질의 언어는 크게 세 가지입니다.
+
+- **SPARQL**: W3C 표준, RDF 데이터 모델 기반, 시맨틱 웹·지식그래프 영역
+- **Cypher**: Neo4j가 개발한 사실상의 LPG 표준, openCypher로 오픈소스화
+- **GQL**: ISO/IEC 39075:2024로 2024년 4월 확정된 국제 표준, Cypher·PGQL·G-CORE·SQL/PGQ를 통합
+
+세 언어의 차이는 문법 수준이 아니라 **데이터 모델과 설계 철학** 에서 비롯됩니다.
+
+---
+
+## 데이터 모델 비교
+
+| 항목 | SPARQL | Cypher | GQL |
+|---|---|---|---|
+| 기반 모델 | RDF (트리플) | LPG (레이블 속성 그래프) | LPG (Property Graph) |
+| 노드 식별 | URI / 빈 노드 | 내부 ID / 레이블 | 내부 ID / 레이블 |
+| 엣지 방향 | 있음 (서술어) | 있음 (→) | 있음 (→) |
+| 엣지 속성 | RDF-star 확장 필요 | 기본 지원 | 기본 지원 |
+| 스키마 | OWL/SHACL (선택) | 제약 없음 (느슨) | 정의 중 |
+| 개방 세계 가정 | OWA | CWA | CWA |
+| 표준화 기구 | W3C | openCypher/Neo4j | ISO/IEC JTC 1/SC 32 |
+
+**OWA(개방 세계 가정)** 는 "명시되지 않은 것은 모른다"는 시맨틱 웹의 기본 전제입니다. SPARQL은 이를 따르고, Cypher/GQL은 CWA(폐쇄 세계 가정)에 가깝습니다.
+
+---
+
+## 동일 질의 세 언어 비교
+
+### 질의: "한국 소재 기업과 그 CEO를 조회하라"
+
+**SPARQL (RDF/OWL 기반)**
+
+```sparql
+PREFIX dbo:  <http://dbpedia.org/ontology/>
+PREFIX dbr:  <http://dbpedia.org/resource/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?company ?companyName ?ceo ?ceoName
+WHERE {
+  ?company a dbo:Company ;
+           dbo:locationCity ?city ;
+           dbo:keyPerson ?ceo ;
+           rdfs:label ?companyName .
+  ?city dbo:country dbr:South_Korea .
+  ?ceo rdfs:label ?ceoName .
+  FILTER (lang(?companyName) = "ko")
+  FILTER (lang(?ceoName) = "ko")
+}
+ORDER BY ?companyName
+```
+
+**Cypher (Neo4j LPG 기반)**
+
+```cypher
+MATCH (company:Company)-[:LOCATED_IN]->(city:City)-[:IN_COUNTRY]->(country:Country {name: '대한민국'}),
+      (company)-[:HAS_CEO]->(ceo:Person)
+RETURN company.name AS companyName,
+       ceo.name AS ceoName
+ORDER BY companyName
+```
+
+**GQL (ISO/IEC 39075:2024)**
+
+```sql
+GRAPH PATTERN MATCH ON myGraph
+  (company:Company)-[:LOCATED_IN]->(city:City)-[:IN_COUNTRY]->(country:Country)
+  (company)-[:HAS_CEO]->(ceo:Person)
+WHERE country.name = '대한민국'
+RETURN company.name AS companyName,
+       ceo.name AS ceoName
+ORDER BY companyName
+```
+
+세 언어 모두 동일한 의도를 표현하지만, 문법 스타일과 데이터 모델 전제가 다릅니다.
+
+---
+
+## 문법 설계 철학 비교
+
+### SPARQL: 트리플 패턴 매칭
+
+SPARQL은 모든 것이 트리플(`?s ?p ?o`)입니다. 쿼리는 트리플 패턴의 집합이고, 엔진은 그래프에서 패턴에 맞는 변수 바인딩을 찾습니다.
+
+```sparql
+# 모든 관계가 명시적 서술어 URI
+?company dbo:foundedBy ?founder .
+?founder rdfs:label "스티브 잡스"@ko .
+```
+
+강점: URI 기반 글로벌 식별, 분산 데이터 조인, 추론 연계
+약점: 장황한 PREFIX 선언, 엣지 속성 표현 불편(RDF-star 필요)
+
+### Cypher: ASCII-아트 패턴
+
+Cypher는 그래프를 시각적으로 표현합니다. `(node)-[edge]->(node)` 패턴은 직관적이고, 그래프 데이터베이스 입문자에게 친숙합니다.
+
+```cypher
+// 노드와 관계를 ASCII 아트로 표현
+MATCH (p:Person {name: '스티브 잡스'})-[:FOUNDED]->(c:Company)
+WHERE c.founded > 1970
+RETURN c.name, c.founded
+```
+
+강점: 직관적 문법, 엣지 속성 간편 표현, 개발자 친화적
+약점: 벤더 종속(Neo4j), 분산 조인 미지원, URI 기반 식별 불가
+
+### GQL: SQL 친화적 표준화
+
+GQL은 SQL을 아는 개발자가 쉽게 익힐 수 있도록 SQL 스타일을 차용합니다.
+
+```sql
+-- GQL: SQL과 유사한 구조
+FROM myGraph
+MATCH (p:Person)-[e:KNOWS]->(q:Person)
+WHERE p.age > 30
+  AND e.since < DATE '2020-01-01'
+RETURN p.name, q.name, e.since
+ORDER BY p.name
+```
+
+강점: ISO 국제 표준, 벤더 독립, SQL 생태계 연계(SQL/PGQ)
+약점: 2024년 확정으로 구현체 성숙도 미흡, 툴링 생태계 초기
+
+---
+
+## 기능 표현력 비교
+
+| 기능 | SPARQL 1.1 | Cypher | GQL |
+|---|---|---|---|
+| 패턴 매칭 | 트리플 패턴 | ASCII 아트 | MATCH 절 |
+| 임의 깊이 탐색 | Property Path (`+`, `*`) | `[:REL*]` | `[:REL+]` |
+| 집계 | GROUP BY, COUNT 등 | WITH + 집계 함수 | GROUP BY |
+| 서브쿼리 | SELECT 중첩, EXISTS | CALL subquery | CALL subquery |
+| 그래프 수정 | SPARQL Update | CREATE/MERGE/DELETE | INSERT/DELETE |
+| 복수 그래프 | NAMED GRAPH, SERVICE | 단일 DB 내 다중 그래프 | GRAPH 절 |
+| 추론 | OWL 연계 | 별도 설정 필요 | 명세 외 |
+| 엣지 속성 | RDF-star (확장) | 기본 지원 | 기본 지원 |
+
+---
+
+## 적합한 사용 맥락
+
+**SPARQL을 선택해야 할 때:**
+
+- W3C 표준 준수가 필수인 공공·학술 데이터
+- 여러 기관의 분산 데이터를 Federated Query로 연결
+- OWL 온톨로지 추론과 통합된 시맨틱 질의
+- Wikidata, DBpedia 등 기존 LOD(Linked Open Data) 활용
+- 유럽 디지털 단일 시장(IDSA, Gaia-X) 등 표준 준수 필요 환경
+
+**Cypher를 선택해야 할 때:**
+
+- Neo4j 기반 운영 그래프 데이터베이스
+- 빠른 프로토타이핑과 개발자 경험 우선
+- 추천 시스템, 사기 탐지 등 실시간 그래프 분석
+- 소셜 네트워크, 공급망 등 LPG 모델이 자연스러운 도메인
+
+**GQL을 선택해야 할 때:**
+
+- 벤더 종속 없이 이식성 확보가 중요한 장기 프로젝트
+- 기존 SQL 인프라와 통합(SQL/PGQ 경로)
+- 신규 그래프 DB 선택 시 표준 기반 투자 보호
+- 규제 환경에서 ISO 표준 준수 요건 충족
+
+---
+
+## GQL의 등장이 갖는 의미
+
+2024년 4월 ISO/IEC 39075:2024 확정은 그래프 데이터베이스 역사에서 중요한 전환점입니다.
+
+1. **SQL 이후 첫 ISO DB 질의 언어 표준**: SQL(1987), SQL/XML, SQL/JSON 이후 처음으로 새로운 질의 언어 ISO 표준이 탄생했습니다.
+2. **SQL/PGQ 경로**: SQL:2023은 SQL 안에 GQL 패턴 매칭 구문을 포함시켰습니다. 기존 관계형 DB 사용자가 SQL만으로 그래프 질의를 할 수 있게 됩니다.
+3. **벤더 수렴**: Neo4j(Cypher 개발자), Oracle, AWS, Tigergraph, SAP 등 주요 벤더가 GQL 작업 그룹에 참여했습니다. 향후 GQL 호환 구현체가 늘어날 전망입니다.
+4. **SPARQL과의 공존**: GQL은 RDF를 대체하지 않습니다. LPG 기반 운영 그래프와 RDF 기반 시맨틱 지식그래프는 각자의 영역을 유지하며 공존할 것입니다.
+
+---
+
+## 세 언어 선택 결정 트리
+
+```
+그래프 데이터를 질의해야 한다
+│
+├─ 표준화된 URI 식별자와 분산 데이터 조인이 필요한가?
+│   └─ Yes → SPARQL
+│
+├─ 주로 Neo4j를 사용하며 빠른 개발이 우선인가?
+│   └─ Yes → Cypher
+│
+└─ 장기적 벤더 독립성과 ISO 표준 준수가 중요한가?
+    └─ Yes → GQL (구현체 성숙도 확인 후 결정)
+```
+
+---
+
+## 정리
+
+세 언어는 경쟁 관계가 아니라 **서로 다른 생태계에 최적화된 도구** 입니다.
+
+- **SPARQL**: 시맨틱 웹·LOD·분산 지식그래프의 표준어
+- **Cypher**: LPG 운영 그래프의 사실상 표준, 개발자 친화적
+- **GQL**: 벤더 독립 ISO 표준, SQL 생태계와의 연계
+
+기술 선택은 데이터 모델(RDF vs LPG), 팀 친숙도, 벤더 환경, 장기 이식성 요건을 종합해 결정해야 합니다.
+
+import Quiz from '../../../components/learning/Quiz.tsx';
+
+<Quiz section="04-sparql" client:load />

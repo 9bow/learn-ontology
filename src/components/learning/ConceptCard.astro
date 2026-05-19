@@ -1,0 +1,12 @@
+---
+interface Props {
+  title: string;
+  open?: boolean;
+}
+const { title, open = false } = Astro.props;
+---
+
+<details class="concept-card" open={open}>
+  <summary>{title}</summary>
+  <slot />
+</details>

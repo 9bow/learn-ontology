@@ -1,0 +1,93 @@
+---
+title: "Bloomberg Knowledge Graph, JPMorgan, Morgan Stanley 사례"
+description: "실제 금융 기관이 지식 그래프를 어떻게 구축하고 운영하는지, 공개된 블로그·논문·특허를 바탕으로 살펴봅니다."
+sidebar:
+  order: 2
+learning_objectives:
+  - Bloomberg Knowledge Graph의 설계 목표와 엔티티 유형을 설명할 수 있다
+  - JPMorgan의 금융 지식 그래프 활용 방향을 공개 자료 기준으로 서술할 수 있다
+  - 금융 기관이 지식 그래프를 도입할 때 공통적으로 직면하는 데이터 품질·거버넌스 문제를 열거할 수 있다
+prerequisites:
+  - "10-1-fibo"
+estimated_minutes: 30
+references:
+  - title: "Vyas, N. et al. (2020). Learning Financial Taxonomies: Bloomberg KG. EMNLP Workshop"
+    url: "https://aclanthology.org/2020.finnlp-1.1"
+  - title: "Kejriwal, M. (2019). Domain-Specific Knowledge Graph Construction. Springer"
+    url: "https://link.springer.com/book/10.1007/978-3-030-12375-8"
+  - title: "Noy, N. et al. (2019). Industry-scale Knowledge Graphs. ACM Queue"
+    url: "https://queue.acm.org/detail.cfm?id=3332266"
+---
+
+## 금융 기관은 왜 지식 그래프를 도입하는가
+
+금융 기관의 데이터 환경은 태생적으로 복잡합니다. 수십 년에 걸쳐 인수·합병을 거치며 서로 다른 기술 스택과 명명 규칙을 가진 시스템들이 공존합니다. "Apple Inc."라는 회사 하나를 예로 들면, 주식 거래 시스템에는 `AAPL US Equity`, 여신 시스템에는 `Apple Incorporated`, 법률 문서에는 `Apple Inc.`로 각각 저장되어 있을 수 있습니다. 이 세 표현이 같은 법인을 가리킨다는 사실을 기계가 자동으로 파악하지 못하면, 리스크 집계·규제 보고·고객 360도 뷰가 불가능합니다.
+
+지식 그래프는 이 문제를 **엔티티 해소(Entity Resolution)** 와 **관계 표현**으로 해결합니다.
+
+---
+
+## Bloomberg Knowledge Graph
+
+Bloomberg는 금융 데이터 제공 사업의 특성상 방대한 구조화·비구조화 데이터를 보유합니다. Bloomberg는 공개 논문과 블로그를 통해 자사 지식 그래프 구축 경험의 일부를 공유했습니다.
+
+Bloomberg Knowledge Graph의 핵심 엔티티 유형은 다음과 같습니다.
+
+| 엔티티 유형 | 예시 |
+|------------|------|
+| 기업(Company) | Apple Inc., Samsung Electronics |
+| 인물(Person) | CEO, CFO 등 임원진 |
+| 금융 상품(Security) | 주식, 채권, ETF |
+| 지수(Index) | S&P 500, KOSPI |
+| 경제 지표(Economic Indicator) | CPI, 실업률 |
+| 뉴스 이벤트(Event) | 실적 발표, M&A, 규제 이슈 |
+
+Bloomberg의 접근법에서 주목할 점은 **뉴스 기사에서 자동으로 관계를 추출**하는 파이프라인입니다. Named Entity Recognition(NER)과 Relation Extraction 모델을 이용해 "X가 Y를 인수했다", "Z가 A의 CEO로 임명됐다" 같은 사실을 트리플로 변환합니다. 추출된 트리플은 사람이 검토한 사실 베이스와 결합되어 지속적으로 갱신됩니다.
+
+Bloomberg는 이 그래프를 뉴스 개인화, 관련 데이터 자동 연결, 검색 품질 향상에 활용한다고 밝혔습니다.
+
+---
+
+## JPMorgan Chase: 금융 서비스 지식 그래프
+
+JPMorgan Chase는 금융 서비스 분야에서 지식 그래프와 온톨로지를 적극 탐구하는 기관 중 하나입니다. 공개된 논문과 특허를 바탕으로 확인할 수 있는 주요 방향은 다음과 같습니다.
+
+**계약 분석 자동화:** 방대한 법률 계약서에서 당사자, 의무, 조건 등을 추출해 지식 그래프로 구성합니다. 이를 통해 특정 법인이 당사자인 계약을 빠르게 검색하고, 계약 간 의존 관계를 파악할 수 있습니다.
+
+**리스크 집계:** BCBS 239 규제(리스크 데이터 집계 원칙)를 준수하기 위해 리스크 데이터의 계보(lineage)를 그래프로 관리하는 접근법입니다. 어떤 리스크 수치가 어떤 소스 데이터에서 어떤 변환을 거쳐 생성됐는지를 추적합니다.
+
+**고객 관계 매핑:** 기업 고객과 그 계열사, 주요 임원, 거래 내역을 그래프로 연결해 관계 관리 담당자에게 360도 뷰를 제공합니다.
+
+JPMorgan은 AI 연구소를 통해 자연어 처리와 지식 그래프를 결합한 연구를 공개하고 있으나, 내부 시스템의 구체적 아키텍처는 공개되지 않습니다.
+
+---
+
+## Morgan Stanley: 지식 그래프와 투자 리서치
+
+Morgan Stanley도 지식 그래프 기술을 투자 리서치 자동화에 적용하는 방향을 탐색합니다. 공개된 정보를 기준으로 확인할 수 있는 사항은 다음과 같습니다.
+
+**리서치 문서 연결:** 수십 년치 애널리스트 리포트에서 기업·산업·거시경제 개념 간의 관계를 추출해 검색 가능한 지식 베이스로 구성합니다.
+
+**공급망 분석:** 기업 간 거래 관계를 그래프로 표현해 특정 공급망 이벤트(예: 특정 반도체 공장 가동 중단)가 어떤 기업에 영향을 미치는지를 다단계 추론으로 파악합니다.
+
+**LLM 결합:** 최근에는 LLM의 답변 품질을 지식 그래프로 검증하는 "Grounding" 패턴을 연구하고 있습니다. LLM이 생성한 기업 관련 주장을 지식 그래프와 대조해 환각(hallucination)을 줄이는 방향입니다.
+
+---
+
+## 공통 과제: 데이터 품질과 거버넌스
+
+세 기관 사례에서 공통적으로 드러나는 도전 과제가 있습니다.
+
+**엔티티 해소의 어려움:** 같은 법인을 다르게 표기한 수천 개의 변형을 하나의 표준 엔티티로 통합하는 작업은 지속적인 유지보수가 필요합니다. LEI(Legal Entity Identifier) 같은 표준 식별자가 도움이 되지만, 모든 데이터 소스가 LEI를 지원하지는 않습니다.
+
+**시간적 유효성 관리:** "X는 Y의 자회사이다"라는 사실은 시점에 따라 달라집니다. 인수·합병·분사가 일어나면 과거 관계와 현재 관계를 모두 유지해야 합니다. RDF-star나 Named Graph를 이용한 시제 관리가 필요합니다.
+
+**소스 신뢰도:** 자동 추출된 트리플과 사람이 검증한 트리플을 구분하고, 출처(Provenance)를 명시해야 합니다. 규제 보고에 사용할 데이터는 높은 신뢰도 기준을 충족해야 합니다.
+
+**접근 제어:** 일부 고객 데이터나 미공개 거래 정보는 모든 사용자가 질의해서는 안 됩니다. 그래프 레벨의 세밀한 접근 제어(Fine-grained Access Control)가 필요합니다.
+
+---
+
+## 정리
+
+Bloomberg, JPMorgan, Morgan Stanley의 사례는 금융 지식 그래프가 단순한 데이터베이스가 아니라 **엔티티 해소·관계 표현·시간적 추론**을 통합하는 플랫폼임을 보여줍니다. 다음 챕터에서는 이런 그래프가 자금세탁방지(AML)와 규제 보고에 어떻게 활용되는지 살펴봅니다.

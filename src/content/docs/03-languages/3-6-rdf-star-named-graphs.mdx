@@ -1,0 +1,263 @@
+---
+title: "RDF-star, Named Graphs, Reification"
+description: "트리플에 대한 메타데이터를 표현하는 세 가지 방법 — RDF Reification, Named Graphs, RDF-star — 을 비교하고 각각의 적합한 사용 시나리오를 학습합니다."
+sidebar:
+  order: 6
+learning_objectives:
+  - RDF Reification의 개념과 한계를 설명할 수 있다
+  - Named Graph의 구조와 SPARQL에서의 활용 방법을 이해한다
+  - RDF-star 문법으로 트리플에 메타데이터를 붙이는 방법을 작성할 수 있다
+  - 세 가지 방법의 트레이드오프를 비교할 수 있다
+prerequisites:
+  - "3-1-rdf-triples"
+  - "3-2-rdfs"
+estimated_minutes: 35
+references:
+  - title: "W3C RDF 1.2 Concepts and Abstract Syntax (Working Draft)"
+    url: "https://www.w3.org/TR/rdf12-concepts/"
+  - title: "W3C RDF-star and SPARQL-star (W3C Community Report 2021)"
+    url: "https://w3c.github.io/rdf-star/cg-spec/2021-12-17.html"
+  - title: "W3C SPARQL 1.1 Query Language — Named Graphs"
+    url: "https://www.w3.org/TR/sparql11-query/#namedGraphs"
+  - title: "Hartig, O. (2017). Foundations of RDF* and SPARQL* — An Alternative Approach. arXiv"
+    url: "https://arxiv.org/abs/1406.3399"
+---
+
+import Quiz from '../../../components/learning/Quiz.tsx';
+
+## 트리플에 대해 말하기
+
+RDF 트리플로 사실을 표현할 수 있습니다. 그런데 때로는 **트리플 자체에 대한 정보** — 메타데이터 — 가 필요합니다.
+
+- "김철수는 서울대학교에서 일한다" — 이 사실은 언제 기록됐는가?
+- "이 정보의 출처는 무엇인가?"
+- "이 트리플의 신뢰도는 얼마인가?"
+- "이 사실은 2020년 1월부터 2023년 6월까지 유효했다"
+
+이런 메타데이터를 표현하는 방법이 세 가지 있습니다. **RDF Reification**, **Named Graphs**, **RDF-star** 입니다.
+
+---
+
+## 1. RDF Reification (구체화)
+
+**Reification** 은 "어떤 것에 대해 말하는 것을 그 자체로 개체화"하는 방법입니다. RDF 1.0부터 있는 오래된 방식입니다.
+
+트리플 `:김철수 :worksAt :서울대학교`에 메타데이터를 붙이려면, 이 트리플을 **개체(individual)** 로 만들어 속성을 붙입니다.
+
+```turtle
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix :     <http://example.org/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+# 원래 트리플 (여전히 존재)
+:김철수 :worksAt :서울대학교 .
+
+# Reification: 트리플을 개체로 만들기
+:Statement1 rdf:type rdf:Statement ;
+    rdf:subject   :김철수 ;
+    rdf:predicate :worksAt ;
+    rdf:object    :서울대학교 ;
+    prov:wasRecordedBy :인사시스템 ;
+    prov:generatedAtTime "2022-03-01T09:00:00"^^xsd:dateTime ;
+    :confidence "0.95"^^xsd:decimal .
+```
+
+### Reification의 한계
+
+- **장황함** — 하나의 트리플에 메타데이터를 붙이려면 4개 트리플이 필요합니다 (rdf:type + subject + predicate + object)
+- **추론 연결 끊김** — Reification은 원래 트리플과 논리적으로 연결되지 않습니다. `:Statement1`이 `rdf:Statement`임을 알아도, 추론 엔진은 이를 원래 트리플과 자동으로 연결하지 않습니다
+- **표준 지원 부족** — SPARQL에서 Reification을 처리하는 내장 문법이 없어 복잡한 쿼리가 필요합니다
+
+---
+
+## 2. Named Graphs (명명된 그래프)
+
+**Named Graph** 는 트리플의 집합에 URI 이름을 붙여 하나의 단위로 다루는 방법입니다. RDF 1.1(2014)의 공식 기능입니다.
+
+### TriG 문법: Named Graph 직렬화
+
+```turtle
+# TriG 형식 (Turtle + Named Graph)
+
+# 기본 그래프 (이름 없음)
+{
+    :서울대학교 rdf:type :University .
+}
+
+# Named Graph 1: 인사 데이터 (출처: HR 시스템)
+<http://example.org/graphs/hr-2022>
+{
+    :김철수 :worksAt :서울대학교 .
+    :김철수 :hasTitle "교수" .
+}
+
+# Named Graph 2: 연구 데이터 (출처: 연구 데이터베이스)
+<http://example.org/graphs/research-2022>
+{
+    :김철수 :authorOf :논문A .
+    :논문A :publishedIn :저널B .
+}
+
+# Named Graph에 대한 메타데이터 (다른 그래프에서)
+<http://example.org/graphs/metadata>
+{
+    <http://example.org/graphs/hr-2022>
+        prov:wasGeneratedBy :인사시스템 ;
+        prov:generatedAtTime "2022-03-01"^^xsd:date ;
+        dct:source <http://hr.snu.ac.kr> .
+
+    <http://example.org/graphs/research-2022>
+        prov:wasGeneratedBy :연구데이터베이스 ;
+        dct:created "2022-06-15"^^xsd:date .
+}
+```
+
+### SPARQL에서 Named Graph 사용
+
+```sparql
+# 특정 그래프에서만 쿼리
+SELECT ?person ?org WHERE {
+    GRAPH <http://example.org/graphs/hr-2022> {
+        ?person :worksAt ?org .
+    }
+}
+
+# 여러 그래프에서 동시에 쿼리
+SELECT ?person ?org ?title WHERE {
+    GRAPH <http://example.org/graphs/hr-2022> {
+        ?person :worksAt ?org ;
+                :hasTitle ?title .
+    }
+}
+
+# 그래프 이름 변수로 사용 (어떤 그래프에 있는지 확인)
+SELECT ?g ?person WHERE {
+    GRAPH ?g {
+        ?person :worksAt :서울대학교 .
+    }
+}
+```
+
+### Named Graph의 장점과 한계
+
+**장점:**
+- 데이터 출처 추적(provenance)에 자연스러운 구조
+- 그래프 단위로 접근 제어 가능
+- SPARQL 표준에서 직접 지원
+
+**한계:**
+- 단일 트리플이 아니라 **그래프 집합** 에 메타데이터를 붙임. 트리플 하나씩 다른 메타데이터를 붙이려면 그래프를 많이 만들어야 함
+- 그래프 수가 폭발적으로 증가할 수 있음
+
+---
+
+## 3. RDF-star (RDF*)
+
+**RDF-star** (RDF*)는 트리플을 다른 트리플의 Subject 또는 Object로 직접 사용하는 방법입니다. 올레 하르티그(Olaf Hartig)가 2014년 제안했고, W3C RDF 1.2 Working Group에서 표준화 작업 중입니다(2024 기준 Working Draft).
+
+### Turtle-star 문법
+
+```turtle
+# 기존 트리플에 메타데이터 추가
+<< :김철수 :worksAt :서울대학교 >>
+    prov:wasRecordedBy :인사시스템 ;
+    prov:generatedAtTime "2022-03-01"^^xsd:date ;
+    :confidence "0.95"^^xsd:decimal .
+
+# <<트리플>> 문법: 트리플을 Subject로 사용
+<< :아스피린 :inhibits :COX1 >>
+    :evidenceType :ClinicalTrial ;
+    :evidenceStrength "high"^^xsd:string ;
+    :sourcePublication <https://doi.org/10.1056/example> .
+
+# 중첩도 가능 (단, 복잡성 주의)
+<< << :김철수 :worksAt :서울대학교 >> :verifiedBy :감사시스템 >>
+    :verificationDate "2023-01-01"^^xsd:date .
+```
+
+### SPARQL-star 문법
+
+```sparql
+# RDF-star 트리플 쿼리
+SELECT ?person ?org ?time WHERE {
+    << ?person :worksAt ?org >>
+        prov:generatedAtTime ?time .
+}
+
+# 신뢰도 0.9 이상인 사실만 조회
+SELECT ?drug ?target WHERE {
+    << ?drug :inhibits ?target >>
+        :confidence ?conf .
+    FILTER (?conf >= 0.9)
+}
+
+# 트리플과 그 메타데이터를 함께 반환
+SELECT ?s ?p ?o ?source WHERE {
+    << ?s ?p ?o >> prov:wasRecordedBy ?source .
+}
+```
+
+### 어노테이션 의미론 vs 인용 의미론
+
+RDF-star의 의미론에는 두 가지 해석이 있습니다.
+
+**어노테이션 의미론(Annotation Semantics):** `<< S P O >> M V`는 "트리플 S-P-O가 존재하고 그것에 메타데이터 M-V를 붙인다"는 의미입니다. 트리플의 존재를 전제합니다.
+
+**인용 의미론(Quotation Semantics):** `<< S P O >> M V`는 "S-P-O라는 주장에 대해 M-V를 말한다"는 의미입니다. 트리플의 진위와 무관하게 언급합니다.
+
+W3C RDF 1.2 Working Draft는 어노테이션 의미론을 채택했습니다.
+
+---
+
+## 세 가지 방법 비교
+
+| 항목 | Reification | Named Graphs | RDF-star |
+|------|-----------|-------------|---------|
+| 표준 | RDF 1.0 이상 | RDF 1.1 | RDF 1.2 (WD) |
+| 문법 간결성 | 낮음 (4+ 트리플) | 중간 | 높음 |
+| 단일 트리플 메타데이터 | 가능 | 비효율적 | 자연스러움 |
+| 그룹 메타데이터 | 불편 | 자연스러움 | 가능 |
+| SPARQL 지원 | 복잡한 쿼리 필요 | 표준 지원 | SPARQL-star 필요 |
+| 추론 통합 | 제한적 | 가능 | 진행 중 |
+| 트리플스토어 지원 | 광범위 | 광범위 | 증가 중 (Neo4j, GraphDB, Stardog) |
+
+---
+
+## 사용 시나리오별 선택
+
+**데이터 출처(provenance) 추적이 주목적이고 그래프 단위로 충분** — Named Graphs
+
+**개별 사실(트리플)에 신뢰도, 타임스탬프, 출처를 붙여야 함** — RDF-star (지원 스토어 확인 필수)
+
+**레거시 시스템과의 완전한 RDF 1.0 호환이 필요** — Reification (비권장이나 호환성 최고)
+
+**지식그래프 기반 팩트 체킹이나 멀티홉 근거 추적** — RDF-star가 가장 자연스러운 표현
+
+---
+
+## 실제 구현: GraphDB에서 RDF-star
+
+```sparql
+-- GraphDB에서 RDF-star 삽입 (SPARQL-star)
+INSERT DATA {
+    << :Ibuprofen :interactsWith :Warfarin >>
+        :interactionSeverity "major" ;
+        :evidenceLevel "established" ;
+        :lastReviewed "2024-01-15"^^xsd:date .
+}
+
+-- 상호작용 심각도가 'major'인 약물 쌍 조회
+SELECT ?drug1 ?drug2 ?lastReview WHERE {
+    << ?drug1 :interactsWith ?drug2 >>
+        :interactionSeverity "major" ;
+        :lastReviewed ?lastReview .
+    FILTER (?lastReview > "2023-01-01"^^xsd:date)
+}
+```
+
+이것으로 섹션 03의 표현 언어들을 모두 살펴봤습니다. RDF의 트리플 모델에서 시작해 RDFS의 경량 스키마, OWL 2 프로파일의 추론, SHACL의 검증, SKOS의 어휘 표현, RDF-star의 메타데이터까지 — 이 언어들은 각자의 역할을 가지고 상호 보완적으로 작동합니다.
+
+---
+
+<Quiz section="03-languages" client:load />

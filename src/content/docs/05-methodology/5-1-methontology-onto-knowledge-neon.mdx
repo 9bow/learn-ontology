@@ -1,0 +1,194 @@
+---
+title: "5-1. METHONTOLOGY, On-To-Knowledge, NeOn"
+description: "온톨로지 개발 방법론의 세 대표 체계—METHONTOLOGY, On-To-Knowledge, NeOn—의 구조와 특징을 비교합니다."
+sidebar:
+  order: 51
+learning_objectives:
+  - "METHONTOLOGY의 생애주기 단계와 활동을 이해한다"
+  - "On-To-Knowledge의 시나리오 기반 접근을 설명한다"
+  - "NeOn의 네트워크 온톨로지 설계 시나리오 9가지를 파악한다"
+  - "세 방법론의 적합한 적용 맥락을 구분한다"
+prerequisites:
+  - "온톨로지의 기본 구성요소(클래스, 속성, 공리)"
+  - "소프트웨어 개발 생애주기 개념"
+estimated_minutes: 35
+references:
+  - title: "Fernández-López et al. METHONTOLOGY: From Ontological Art towards Ontological Engineering (1997)"
+    url: "https://oa.upm.es/5484/"
+  - title: "Suárez-Figueroa et al. The NeOn Methodology for Ontology Engineering. Springer (2012)"
+    url: "https://doi.org/10.1007/978-3-642-24794-1_3"
+  - title: "Corcho et al. Methodologies, Tools and Languages for Building Ontologies. DKE 46(1) (2003)"
+    url: "https://doi.org/10.1016/S0169-023X(02)00195-6"
+  - title: "NeOn Project — Networked Ontologies"
+    url: "http://www.neon-project.org/"
+---
+
+## 온톨로지 공학과 방법론의 필요성
+
+초기 온톨로지 개발은 "온톨로지 예술(ontological art)"에 가까웠습니다. 전문가 개인의 직관과 경험에 의존했고, 재현 가능한 프로세스가 없었습니다. 1990년대 중반부터 소프트웨어 공학의 방법론 사상을 온톨로지에 적용하려는 시도가 본격화됩니다.
+
+온톨로지 방법론은 다음 질문에 답합니다.
+
+- 어디서 시작하는가? (범위 정의)
+- 무엇을 어떤 순서로 결정하는가? (활동 순서)
+- 어떤 산출물을 만드는가? (중간·최종 문서)
+- 도메인 전문가와 어떻게 협업하는가? (역할 분담)
+- 완료 기준은 무엇인가? (품질 평가)
+
+세 방법론은 각기 다른 시대적 맥락에서 등장했고, 강조점이 다릅니다.
+
+---
+
+## METHONTOLOGY
+
+### 등장 배경
+
+METHONTOLOGY는 1997년 스페인 마드리드 공과대학(UPM)의 Fernández-López, Gómez-Pérez, Juristo가 제안했습니다. 이름은 "METHod for ONTOlogy"의 약어입니다. IEEE 1074 소프트웨어 개발 표준에서 구조를 차용해 온톨로지 공학을 체계적 엔지니어링으로 격상시키려 했습니다.
+
+### 생애주기 단계
+
+METHONTOLOGY는 온톨로지를 소프트웨어처럼 관리합니다.
+
+| 단계 | 활동 |
+|---|---|
+| 1. 명세(Specification) | 범위·목적·사용자·사용 사례 정의 |
+| 2. 개념화(Conceptualization) | 비형식적 표현(표, 그래프)으로 개념 구조화 |
+| 3. 형식화(Formalization) | 형식 모델로 변환 |
+| 4. 구현(Implementation) | OWL 등 언어로 코딩 |
+| 5. 유지보수(Maintenance) | 오류 수정·확장 |
+
+각 단계는 병렬로 진행될 수 있고, 이전 단계로 되돌아가는 반복 흐름을 허용합니다.
+
+### 주요 활동 분류
+
+METHONTOLOGY는 세 유형의 활동을 구분합니다.
+
+**관리 활동**: 계획, 통제, 품질 보증
+**개발 활동**: 지식 획득, 개념화, 형식화, 구현, 평가, 문서화
+**지원 활동**: 지식 획득 도구, 평가, 통합
+
+### 개념화 단계의 중간 표현
+
+METHONTOLOGY의 독창적 기여는 구현 전 단계의 언어 중립적 표현입니다.
+
+- **용어 사전(Glossary of Terms)**: 용어, 동의어, 약어, 정의를 표로 정리
+- **개념 분류 트리(Concept Classification Tree)**: 클래스 계층 초안
+- **이진 관계 표(Binary Relation Diagrams)**: 클래스 간 관계 명세
+- **인스턴스 속성 표**: 속성 도메인·범위·카디널리티
+- **공리 표**: 제약 조건과 규칙
+
+이 중간 산출물은 도메인 전문가가 OWL 문법 없이 온톨로지 내용을 검토할 수 있게 해줍니다.
+
+### 한계
+
+METHONTOLOGY는 **단일 온톨로지 개발** 에 최적화되어 있습니다. 여러 기존 온톨로지를 재사용·통합하거나 분산 팀이 협업하는 시나리오에는 적합하지 않습니다. 또한 방법론이 도구보다 앞서 등장해 자동화 지원이 미흡했습니다.
+
+---
+
+## On-To-Knowledge
+
+### 등장 배경
+
+On-To-Knowledge(OTK)는 2000~2002년 EU 프로젝트로 Sure, Studer, Staab 등이 주도했습니다. METHONTOLOGY가 "온톨로지를 어떻게 만드는가"에 집중했다면, OTK는 "온톨로지가 지식 관리 시스템에서 어떤 역할을 하는가"라는 응용 맥락을 중시합니다.
+
+### OTK 방법론 단계
+
+```
+킥오프(Kick-off)
+    │
+    ▼
+정제(Refinement) ←──┐
+    │               │
+    ▼               │
+평가(Evaluation)    │ 반복
+    │               │
+    ▼               │
+유지·진화(Maintenance & Evolution) ──┘
+```
+
+**킥오프 단계**: 타당성 연구, 가능성 연구, 비용·편익 분석을 포함합니다. "온톨로지가 정말 필요한가?"를 먼저 묻습니다.
+
+**정제 단계**: 사용 사례 시나리오 작성 → 비형식적 개념화 → OWL 구현 → 평가 순으로 진행합니다.
+
+### OTK의 특징: 사용 사례 시나리오
+
+OTK는 온톨로지 개발을 시나리오로 시작합니다.
+
+1. 온톨로지를 사용할 시나리오를 구체적으로 서술합니다
+2. 시나리오에서 핵심 용어를 추출합니다
+3. 용어를 개념·속성·관계로 분류합니다
+4. 형식 언어(OWL)로 구현합니다
+
+이 접근은 나중의 Competency Question 기법(5-3 챕터)과 유사합니다.
+
+### OTK 도구: OntoEdit
+
+OTK는 OntoEdit라는 온톨로지 편집 도구를 함께 개발했습니다. 방법론과 도구를 통합한 점이 METHONTOLOGY와의 차별점입니다.
+
+---
+
+## NeOn
+
+### 등장 배경
+
+NeOn(Networked Ontologies)은 2006~2010년 EU FP6 프로젝트로 Suárez-Figueroa, Gómez-Pérez 등이 주도했습니다. 핵심 통찰은 "현실에서 온톨로지는 처음부터 만들지 않는다"는 것입니다. 기존 온톨로지, 비온톨로지 자원(데이터베이스, 시소러스, 사전), 온톨로지 패턴을 **재사용·통합** 하는 방식이 더 일반적입니다.
+
+NeOn은 이런 현실을 9가지 시나리오로 체계화했습니다.
+
+### NeOn의 9가지 시나리오
+
+| 시나리오 | 설명 |
+|---|---|
+| 1 | 비온톨로지 자원 없이 처음부터 명세·구현 |
+| 2 | 비온톨로지 자원(DB, 분류체계 등)을 재사용·재공학 |
+| 3 | 기존 온톨로지 자원 재사용 |
+| 4 | 기존 온톨로지 자원 재사용 + 재공학 |
+| 5 | 온톨로지 자원 통합 |
+| 6 | 온톨로지 자원 통합 + 재공학 |
+| 7 | 온톨로지 설계 패턴 재사용 |
+| 8 | 온톨로지 설계 패턴 재사용 + 재공학 |
+| 9 | 온톨로지 자원 + 온톨로지 설계 패턴 재사용 |
+
+시나리오 1만이 "처음부터 만들기"에 해당하고, 2~9는 모두 재사용과 통합을 포함합니다.
+
+### 온톨로지 설계 패턴(ODP)
+
+NeOn의 핵심 기여 중 하나는 **온톨로지 설계 패턴(Ontology Design Pattern, ODP)** 개념의 체계화입니다. ODP는 소프트웨어 공학의 GoF 디자인 패턴처럼, 반복적으로 나타나는 온톨로지 설계 문제의 검증된 해법입니다.
+
+대표적인 ODP 예시:
+
+- **Participation Pattern**: "이벤트에 엔티티가 어떤 역할로 참여하는가"
+- **Situation Pattern**: "특정 상황 아래 사실이 성립하는 조건"
+- **Sequence Pattern**: "사건의 순서 관계 표현"
+- **TimeIndexedSituation Pattern**: "시간에 따라 변하는 속성 표현"
+
+ODP는 `ontologydesignpatterns.org`에 카탈로그로 공개되어 있습니다.
+
+### NeOn 툴킷
+
+NeOn은 Eclipse 기반의 NeOn Toolkit을 개발했습니다. 온톨로지 작성, 버전 관리, 협업, 패턴 적용을 지원합니다. 현재는 Protégé에 밀려 활발히 사용되지는 않지만, NeOn의 개념적 기여는 이후 방법론에 큰 영향을 미쳤습니다.
+
+---
+
+## 세 방법론 비교
+
+| 항목 | METHONTOLOGY | On-To-Knowledge | NeOn |
+|---|---|---|---|
+| 시대 | 1997 | 2000~2002 | 2006~2010 |
+| 초점 | 단일 온톨로지 생애주기 | 지식 관리 시스템 통합 | 네트워크 온톨로지, 재사용 |
+| 시작점 | 빈 화면 | 사용 사례 시나리오 | 9가지 시나리오 중 선택 |
+| 재사용 | 제한적 | 부분 지원 | 핵심 원칙 |
+| 도구 | 별도 | OntoEdit | NeOn Toolkit |
+| 적합한 맥락 | 소규모·단일 도메인 | 기업 KM 시스템 | 대규모·분산·재사용 중심 |
+
+---
+
+## 현재의 의미
+
+세 방법론 모두 학문적 기여로서의 의미는 크지만, 오늘날 현업에서 "METHONTOLOGY 단계를 엄격히 따른다"고 말하는 팀은 드뭅니다. 실무에서는 이 방법론들의 핵심 아이디어를 선택적으로 흡수한 경량화된 접근이 주류입니다.
+
+- METHONTOLOGY의 중간 표현 산출물 → 도메인 전문가 검토 도구로 활용
+- OTK의 사용 사례 시나리오 → Competency Question으로 발전
+- NeOn의 ODP → 온톨로지 설계 품질 개선 도구로 활용
+
+다음 챕터에서는 Stanford Ontology 101, 즉 Noy와 McGuinness의 실용 가이드를 다룹니다. 이 가이드는 세 방법론보다 훨씬 널리 읽히고 현업 온톨로지 설계자들이 실제로 참조하는 문서입니다.

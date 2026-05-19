@@ -1,0 +1,147 @@
+---
+title: "9-1. SNOMED CT, ICD-10/11, HL7 FHIR"
+description: "의료 표준 온톨로지와 데이터 교환 표준 — SNOMED CT 구조, ICD 분류 체계, FHIR 리소스 모델"
+sidebar:
+  order: 1
+learning_objectives:
+  - "SNOMED CT의 Concept-Description-Relationship 구조와 OWL EL 기반 설계를 설명할 수 있다"
+  - "ICD-10과 ICD-11의 구조적 차이와 ICD-11의 온톨로지적 특성을 설명할 수 있다"
+  - "HL7 FHIR 리소스 모델과 SNOMED CT 코드가 결합되는 방식을 설명할 수 있다"
+  - "세 표준이 의료 데이터 상호운용성에서 각각 담당하는 역할을 구분할 수 있다"
+prerequisites:
+  - "온톨로지 기본 (클래스, 프로퍼티, 공리)"
+  - "OWL 2 EL 프로파일 개념"
+estimated_minutes: 35
+references:
+  - title: "SNOMED International — SNOMED CT Starter Guide"
+    url: "https://confluence.ihtsdotools.org/display/DOCSTART"
+  - title: "World Health Organization — ICD-11 Reference Guide"
+    url: "https://icd.who.int/browse/2024-01/mms/en"
+  - title: "HL7 International — HL7 FHIR R4 Specification"
+    url: "https://hl7.org/fhir/R4/"
+  - title: "Donnelly 2006 — SNOMED-CT: The advanced terminology and coding system for eHealth"
+    url: "https://pubmed.ncbi.nlm.nih.gov/16823099/"
+---
+
+의료 정보 시스템이 서로 다른 기관, 국가, 시스템 사이에서 의미 있는 데이터를 교환하려면 공통 언어가 필요하다. SNOMED CT는 임상 개념의 표준 온톨로지, ICD는 진단·사망 원인 분류, HL7 FHIR은 데이터 교환 형식을 각각 담당한다. 세 표준은 상호 보완적으로 작동한다.
+
+## SNOMED CT
+
+SNOMED CT(Systematized Nomenclature of Medicine — Clinical Terms)는 SNOMED International이 관리하는 임상 의료 온톨로지다. 35만 개 이상의 임상 개념과 140만 개 이상의 관계를 포함하며, 전 세계 40개국 이상에서 표준으로 채택됐다.
+
+### 구조: Concept-Description-Relationship
+
+SNOMED CT는 세 가지 구성요소로 이루어진다.
+
+**Concept:** 임상 개념의 고유 식별자(SCTID). 숫자 코드로 표현된다. 예: `22298006` (심근경색, Myocardial infarction).
+
+**Description:** 개념의 표현 형태. 하나의 Concept에 여러 Description이 있다.
+- Fully Specified Name(FSN): `Myocardial infarction (disorder)` — 모호성 없는 완전 명칭
+- Preferred Term: `Heart attack` — 선호 표현
+- Synonym: `Cardiac infarction`, `Infarction of heart` — 동의어
+
+**Relationship:** 개념 간의 관계. 주요 관계 유형:
+- `Is a` (서브클래스): `22298006 Is a 57809008` (심근경색 Is a 허혈성 심장질환)
+- 속성 관계: `Finding site`, `Causative agent`, `Associated morphology` 등 69개의 속성
+
+### OWL 2 EL 기반 설계
+
+SNOMED CT는 OWL 2 EL 프로파일로 표현할 수 있도록 설계됐다. 이는 ELK 같은 EL 추론기로 수십만 개 개념의 전체 분류를 수 초 내에 완료할 수 있음을 의미한다. OWL 표현 예시:
+
+```turtle
+# 심근경색 (SNOMED CT 22298006) OWL 표현
+sct:22298006 a owl:Class ;
+    rdfs:label "Myocardial infarction (disorder)" ;
+    rdfs:subClassOf sct:57809008 ;  # Is a 허혈성 심장질환
+    rdfs:subClassOf [
+        a owl:Restriction ;
+        owl:onProperty sct:363698007 ;  # Finding site
+        owl:someValuesFrom sct:74281007  # 심근 구조
+    ] .
+```
+
+### SNOMED CT 활용
+
+- **임상 문서화:** 진단, 증상, 처치를 표준 코드로 기록해 시스템 간 공유
+- **임상 의사결정 지원:** Is-a 계층으로 "모든 심장 질환 환자" 같은 범주 질의
+- **NLP 파이프라인:** 임상 텍스트에서 SNOMED CT 코드로 엔티티 링킹
+
+## ICD-10 / ICD-11
+
+ICD(International Classification of Diseases)는 WHO가 관리하는 질병·사망 원인 분류 체계다.
+
+### ICD-10
+
+ICD-10은 알파뉴메릭 코드 체계(A00~Z99)로 구성된다. 계층 구조를 가지지만 온톨로지적 의미 관계는 제한적이다. 코드 구조가 분류 목적에 최적화되어 있어 임상적 의미 추론에는 적합하지 않다.
+
+예: `I21.0` (전벽 급성 심근경색) → `I21` (급성 심근경색) → `I20-I25` (허혈성 심장질환)
+
+### ICD-11
+
+ICD-11(2022년 공식 발효)은 ICD-10 대비 온톨로지적으로 크게 개선됐다.
+
+**Foundation Component:** 모든 질병 개념을 포함하는 중심 온톨로지. 약 8만 개의 엔티티를 포함한다.
+
+**Linearization:** 특정 목적(사망 원인, 임상 수정, 일차 의료)에 따라 Foundation에서 서브셋을 추출한 뷰.
+
+**포스트코디네이션:** 기본 코드에 확장자(extension)를 조합해 복합 임상 상태를 표현할 수 있다. 예: "좌심실 전벽 급성 심근경색 + 당뇨 합병증"을 단일 코드로 표현.
+
+**SNOMED CT와의 관계:** SNOMED International과 WHO가 공식 매핑 작업을 진행 중이다. ICD-11 코드와 SNOMED CT 코드 간의 등가 관계를 정의하는 공식 매핑 테이블이 제공된다.
+
+## HL7 FHIR
+
+HL7 FHIR(Fast Healthcare Interoperability Resources)는 의료 데이터 교환을 위한 API 표준이다(현재 R4, R5 진행 중). REST API 기반으로 JSON, XML, Turtle 형식을 지원한다.
+
+### 리소스 모델
+
+FHIR은 의료 도메인의 모든 개념을 **리소스(Resource)**로 정의한다. 주요 리소스:
+
+- `Patient`: 환자 기본 정보
+- `Condition`: 진단·상태
+- `Observation`: 검사 결과, 활력징후
+- `MedicationRequest`: 처방
+- `Procedure`: 처치·수술
+- `DiagnosticReport`: 진단 보고서
+
+각 리소스는 JSON 문서로 표현되며 RESTful API로 CRUD 연산을 수행한다.
+
+### SNOMED CT와 FHIR의 결합
+
+FHIR 리소스의 코드 필드에 SNOMED CT 코드를 사용해 임상 의미를 부여한다:
+
+```json
+{
+  "resourceType": "Condition",
+  "id": "condition-123",
+  "subject": { "reference": "Patient/patient-456" },
+  "code": {
+    "coding": [{
+      "system": "http://snomed.info/sct",
+      "code": "22298006",
+      "display": "Myocardial infarction"
+    }]
+  },
+  "clinicalStatus": {
+    "coding": [{
+      "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+      "code": "active"
+    }]
+  }
+}
+```
+
+이 구조에서 `system` URI가 SNOMED CT 네임스페이스를 가리키므로, 수신 시스템은 코드의 의미를 SNOMED CT 온톨로지로 해석할 수 있다.
+
+### FHIR Terminology Service
+
+FHIR은 ValueSet(허용 코드 집합)과 CodeSystem(코드 체계 정의)을 관리하는 Terminology Service API를 정의한다. 이를 통해 SNOMED CT의 서브타입 조회, ICD 코드 검증, LOINC 개념 검색을 표준 API로 수행할 수 있다.
+
+## 세 표준의 역할 분담
+
+| 표준 | 주요 역할 | 강점 | 한계 |
+|------|---------|------|------|
+| SNOMED CT | 임상 개념 온톨로지 | 풍부한 의미 관계, 추론 지원 | 라이선스 복잡(회원국 무료), 학습 비용 |
+| ICD-10/11 | 진단·사망 원인 분류 | 전 세계 표준, 청구·통계 | ICD-10 의미 관계 제한적 |
+| HL7 FHIR | 데이터 교환 API | REST 기반 현대적 API, 유연성 | 프로파일 다양성으로 상호운용 복잡 |
+
+실제 의료 정보 시스템은 세 표준을 함께 사용한다. 임상 기록은 FHIR 리소스로, 진단 코드는 SNOMED CT로, 청구·통계는 ICD로 표현한다. 이 표준들의 통합이 의료 KG 구축의 기반이 된다.

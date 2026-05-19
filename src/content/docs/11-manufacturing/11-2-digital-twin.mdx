@@ -1,0 +1,158 @@
+---
+title: "디지털 트윈과 온톨로지"
+description: "W3C Web of Things, Asset Administration Shell(AAS), DTDL 등 디지털 트윈 표준과 온톨로지의 연결 방식을 살펴봅니다."
+sidebar:
+  order: 2
+learning_objectives:
+  - 디지털 트윈의 개념과 온톨로지가 필요한 이유를 설명할 수 있다
+  - W3C Web of Things(WoT) Thing Description과 RDF 표현의 관계를 서술할 수 있다
+  - Asset Administration Shell(AAS)과 FARO/RAMI 4.0의 역할을 비교할 수 있다
+prerequisites:
+  - "11-1-siemens-bosch"
+estimated_minutes: 35
+references:
+  - title: "W3C Web of Things (WoT) Architecture"
+    url: "https://www.w3.org/TR/wot-architecture/"
+  - title: "W3C Web of Things Thing Description"
+    url: "https://www.w3.org/TR/wot-thing-description/"
+  - title: "Plattform Industrie 4.0 — Asset Administration Shell Specification"
+    url: "https://www.plattform-i40.de/IP/Redaktion/EN/Downloads/Publikation/Asset_Administration_Shell_Reading_Guide.html"
+  - title: "Grieves, M. & Vickers, J. (2017). Digital Twin: Mitigating Unpredictable, Undesirable Emergent Behavior in Complex Systems"
+    url: "https://doi.org/10.1007/978-3-319-38756-7_4"
+---
+
+## 디지털 트윈이란 무엇인가
+
+**디지털 트윈(Digital Twin)** 은 물리적 자산(기계, 공장, 인프라)의 디지털 복제본입니다. 단순한 3D 모델이 아니라 실시간 센서 데이터, 운영 이력, 물리 법칙 시뮬레이션이 통합된 살아있는 모델입니다. 개념은 2000년대 초반 NASA의 우주선 상태 모니터링에서 시작됐고, 제조·인프라·도시 관리 등으로 확장됐습니다.
+
+디지털 트윈이 작동하려면 세 가지 요소가 필요합니다.
+
+1. **물리 자산의 구조 모델:** 어떤 컴포넌트로 구성되고, 각 컴포넌트는 어떤 속성을 가지며, 어떻게 연결되는가.
+2. **실시간 상태 데이터:** 센서에서 수집한 온도, 압력, 진동, 에너지 소비량 등.
+3. **행동 모델:** 조건이 변할 때 자산이 어떻게 반응하는가(물리 시뮬레이션 또는 머신러닝 모델).
+
+온톨로지는 첫 번째 요소, 즉 **구조 모델의 형식화**에 핵심 역할을 합니다.
+
+---
+
+## W3C Web of Things
+
+W3C의 **Web of Things(WoT)** 는 IoT 기기의 상호운용성을 위한 표준 집합입니다. 핵심은 **Thing Description(TD)** 로, JSON-LD 기반으로 기기의 속성(Properties), 행동(Actions), 이벤트(Events)를 기술합니다.
+
+```json
+{
+  "@context": "https://www.w3.org/2019/wot/td/v1",
+  "@type": "Thing",
+  "id": "urn:dev:ops:siemens-pump-1234",
+  "title": "냉각 펌프 #1",
+  "properties": {
+    "temperature": {
+      "type": "number",
+      "unit": "degree Celsius",
+      "readOnly": true,
+      "forms": [{"href": "mqtt://factory.example.com/pump1/temp"}]
+    },
+    "status": {
+      "type": "string",
+      "enum": ["running", "stopped", "fault"],
+      "readOnly": true
+    }
+  },
+  "actions": {
+    "start": {
+      "description": "펌프 기동",
+      "forms": [{"href": "mqtt://factory.example.com/pump1/start"}]
+    }
+  }
+}
+```
+
+Thing Description은 JSON-LD이므로 RDF 트리플로 변환할 수 있습니다. 이를 통해 여러 기기의 TD를 트리플 스토어에 로드하고 SPARQL로 질의할 수 있습니다. 예: "온도 속성을 가진 모든 펌프를 조회하라."
+
+WoT는 기기 수준의 기술에 집중하며, 기기들이 모인 시스템·공정의 온톨로지는 별도로 설계해야 합니다.
+
+---
+
+## Asset Administration Shell
+
+**Asset Administration Shell(AAS)** 은 독일의 플랫폼 인더스트리 4.0이 제안한 개념으로, 물리적 자산과 그 디지털 표현을 연결하는 표준 인터페이스입니다. 자산의 메타데이터, 기술 문서, 운영 데이터를 구조화된 방식으로 담는 "디지털 신분증"이라고 볼 수 있습니다.
+
+AAS의 구조는 다음과 같습니다.
+
+```
+Asset Administration Shell
+├── Asset Information (자산 식별 정보)
+│   ├── AssetId: "urn:bosch:pump:P2023-001"
+│   └── AssetKind: Instance
+├── Submodel: TechnicalData
+│   ├── MaxFlowRate: 150 L/min
+│   └── NominalVoltage: 380V
+├── Submodel: OperationalData
+│   ├── CurrentTemperature: (실시간)
+│   └── RunningHours: 1452h
+└── Submodel: Documentation
+    └── ManualPDF: (링크)
+```
+
+AAS는 특정 온톨로지 언어를 강제하지 않지만, 서브모델의 시맨틱 정의를 IEC CDD나 ECLASS 같은 표준 사전에 연결하도록 권장합니다. 이 연결 지점에서 RDF/OWL 온톨로지가 사용됩니다.
+
+---
+
+## DTDL: Microsoft의 접근
+
+Microsoft Azure Digital Twins는 **DTDL(Digital Twins Definition Language)** 을 사용합니다. JSON-LD 기반으로 트윈의 구조를 정의합니다.
+
+```json
+{
+  "@context": "dtmi:dtdl:context;2",
+  "@id": "dtmi:com:example:CoolingPump;1",
+  "@type": "Interface",
+  "displayName": "Cooling Pump",
+  "contents": [
+    {
+      "@type": ["Property", "Temperature"],
+      "name": "outletTemperature",
+      "schema": "double",
+      "unit": "degreeCelsius"
+    },
+    {
+      "@type": "Relationship",
+      "name": "feeds",
+      "target": "dtmi:com:example:CoolingSystem;1"
+    }
+  ]
+}
+```
+
+DTDL은 OWL보다 표현력이 낮지만 실시간 그래프 업데이트와 시각화에 최적화되어 있습니다. 온톨로지 수준의 추론보다는 운영 가시성에 초점을 맞춥니다.
+
+---
+
+## 온톨로지와 디지털 트윈의 통합 패턴
+
+디지털 트윈 플랫폼과 온톨로지를 통합하는 일반적인 패턴입니다.
+
+**패턴 1: 온톨로지 우선(Ontology-first)**
+OWL 온톨로지로 자산 유형과 관계를 먼저 정의하고, AAS나 DTDL은 이 온톨로지의 구체적 구현체로 생성합니다. 추론과 의미적 일관성이 중요할 때 적합합니다.
+
+**패턴 2: 운영 데이터 우선(Operational-first)**
+DTDL이나 AAS로 실시간 트윈을 구성하고, 사후에 OWL 온톨로지에 매핑합니다. 빠른 구축이 필요할 때 적합하지만 의미적 일관성을 보장하기 어렵습니다.
+
+**패턴 3: 하이브리드**
+운영 레이어(AAS/DTDL)와 시맨틱 레이어(OWL)를 분리하고, 변환 레이어로 연결합니다. 실무에서 가장 많이 채택됩니다.
+
+---
+
+## 공간 온톨로지: BOT와 brick
+
+건물·공장 디지털 트윈에서는 공간 관계가 중요합니다.
+
+**BOT(Building Topology Ontology):** W3C LBD(Linked Building Data) 커뮤니티 그룹이 개발한 온톨로지로, 건물(Building) → 층(Storey) → 공간(Space) → 요소(Element)의 위계를 표현합니다.
+
+**Brick Schema:** 건물 자동화 시스템(HVAC, 조명, 전력)의 장비와 데이터 포인트를 표준화하는 온톨로지입니다. 냉각기(Chiller), 공기조화기(AHU), 온도 센서들의 관계를 RDF로 표현해 건물 에너지 분석에 활용됩니다.
+
+---
+
+## 정리
+
+디지털 트윈과 온톨로지는 제조·인프라 도메인에서 상호 보완적입니다. W3C WoT는 기기 수준의 표준 기술을, AAS는 자산 메타데이터의 표준 인터페이스를, OWL 온톨로지는 의미적 일관성과 추론 능력을 제공합니다. 다음 챕터에서는 공급망 분석에서 이 기술들이 어떻게 활용되는지 살펴봅니다.

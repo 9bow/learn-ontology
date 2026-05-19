@@ -1,0 +1,215 @@
+---
+title: "Upper·Domain·Application 온톨로지 계층"
+description: "BFO, DOLCE, SUMO 같은 상위 온톨로지(Upper Ontology)부터 도메인 온톨로지, 애플리케이션 온톨로지까지 세 계층의 역할과 선택 기준을 학습합니다."
+sidebar:
+  order: 5
+learning_objectives:
+  - Upper, Domain, Application 세 계층의 역할과 차이를 설명할 수 있다
+  - BFO, DOLCE, SUMO의 핵심 설계 철학을 비교할 수 있다
+  - 적절한 상위 온톨로지를 선택하는 기준을 이해한다
+prerequisites:
+  - "2-4-reasoning-intro"
+estimated_minutes: 40
+references:
+  - title: "Smith, B. et al. (2007). The OBO Foundry: coordinated evolution of ontologies. Nature Biotechnology"
+    url: "https://www.nature.com/articles/nbt1346"
+  - title: "Niles, I. & Pease, A. (2001). Towards a Standard Upper Ontology. FOIS"
+    url: "https://dl.acm.org/doi/10.1145/505168.505170"
+  - title: "Basic Formal Ontology (BFO) — OBO Foundry"
+    url: "https://basic-formal-ontology.org/"
+  - title: "DOLCE: Descriptive Ontology for Linguistic and Cognitive Engineering"
+    url: "http://www.loa.istc.cnr.it/dolce/overview.html"
+  - title: "Noy, N. & McGuinness, D. (2001). Ontology Development 101"
+    url: "https://protege.stanford.edu/publications/ontology_development/ontology101.pdf"
+---
+
+import Quiz from '../../../components/learning/Quiz.tsx';
+
+## 왜 계층이 필요한가
+
+온톨로지를 처음 만들 때 흔히 저지르는 실수는 "우리 도메인에 맞는 것만 정의하면 된다"고 생각하는 것입니다. 이렇게 만든 온톨로지는 다른 도메인 온톨로지와 통합하기 어렵고, "시간"이나 "장소"처럼 여러 도메인에 공통된 개념을 중복 정의하게 됩니다.
+
+이 문제를 해결하기 위해 온톨로지는 세 계층으로 구조화됩니다.
+
+- **Upper Ontology(상위 온톨로지)** — 모든 도메인에 공통된 최상위 개념
+- **Domain Ontology(도메인 온톨로지)** — 특정 분야(의료, 금융, 제조)의 전문 개념
+- **Application Ontology(애플리케이션 온톨로지)** — 특정 시스템·용도에 맞게 특화된 온톨로지
+
+---
+
+## Upper Ontology (상위 온톨로지)
+
+상위 온톨로지는 **도메인 독립적(domain-independent)** 인 최상위 개념을 정의합니다. 시간, 공간, 물질, 사건, 과정, 역할, 품질 같은 가장 추상적인 범주들입니다.
+
+상위 온톨로지의 목적은 도메인 온톨로지들이 공통 어휘를 공유함으로써 **상호운용성(interoperability)** 을 높이는 것입니다.
+
+### BFO (Basic Formal Ontology)
+
+Barry Smith가 이끄는 팀이 개발한 BFO는 **생물의학** 분야에서 가장 널리 채택된 상위 온톨로지입니다. OBO Foundry(Open Biological and Biomedical Ontology)의 공식 상위 온톨로지입니다.
+
+BFO의 핵심 구분은 **Continuant(지속체)** 와 **Occurrent(사건체)** 입니다.
+
+```
+owl:Thing
+├── Continuant (시간을 통해 동일성을 유지하는 것)
+│   ├── IndependentContinuant
+│   │   ├── MaterialEntity (물질적 개체)
+│   │   │   ├── Object (개별 물체 — 세포, 기관)
+│   │   │   └── ObjectAggregate (집합체)
+│   │   └── ImmaterialEntity (비물질적)
+│   │       └── Site (장소, 공간 영역)
+│   └── SpecificallyDependentContinuant
+│       ├── Quality (색, 질량)
+│       └── RealizableEntity
+│           ├── Disposition (성향 — 약물의 용해성)
+│           └── Function (기능 — 심장의 펌프 기능)
+└── Occurrent (시간 속에 전개되는 것)
+    ├── Process (과정 — 세포분열, 투약)
+    ├── ProcessBoundary (과정의 경계 — 투약 시작)
+    └── TemporalRegion (시간 영역)
+```
+
+BFO를 채택하면 "투약은 Process다", "혈압은 Quality다" 같은 존재론적 명확성이 생깁니다.
+
+**채택 사례:** SNOMED CT (일부), Gene Ontology, ChEBI, OBO Foundry의 160개 이상 온톨로지
+
+### DOLCE (Descriptive Ontology for Linguistic and Cognitive Engineering)
+
+이탈리아 LOA(Laboratory for Applied Ontology)가 개발한 DOLCE는 BFO와 달리 **언어와 인지** 구조를 반영합니다. DOLCE는 "우리가 세계를 어떻게 개념화하는가"에 관심을 둡니다.
+
+```
+DOLCE 최상위 범주:
+├── Endurant (내구체 — 시간 내내 완전히 존재)
+│   ├── PhysicalEndurant (물리적)
+│   └── NonPhysicalEndurant (사회적 역할, 정보 개체)
+├── Perdurant (외구체 — 시간의 부분에만 존재)
+│   ├── Event (사건 — 순간적)
+│   └── Process (과정 — 지속적)
+├── Quality (품질 — 측정 가능한 속성)
+└── Abstract (추상 — 수학적 객체)
+```
+
+DOLCE는 **멀티모달 온톨로지**와 문화·사회 개념 표현에 적합합니다.
+
+**채택 사례:** LKIF(법률 지식 상호교환 형식), DUL(DOLCE+DnS Ultralite), 여러 언어자원 온톨로지
+
+### SUMO (Suggested Upper Merged Ontology)
+
+IEEE 표준화를 추진한 SUMO는 **가장 포괄적인** 상위 온톨로지입니다. 20,000개 이상의 용어를 포함하며, WordNet과 매핑되어 있습니다.
+
+```turtle
+# SUMO 예시
+sumo:Entity
+    sumo:Physical # 물리적으로 존재하는 것
+        sumo:Object # 물체
+        sumo:Process # 과정
+    sumo:Abstract # 추상적인 것
+        sumo:Attribute # 속성
+        sumo:Proposition # 명제
+```
+
+**채택 사례:** WordNet 연동, 다국어 NLP 프로젝트, 법률 온톨로지
+
+### 세 상위 온톨로지 비교
+
+| 항목 | BFO | DOLCE | SUMO |
+|------|-----|-------|------|
+| 설계 철학 | 과학적 실재론 | 인지·언어 반영 | 실용적 포괄성 |
+| 크기 | 소형 (~35 클래스) | 중형 (~80 클래스) | 대형 (20,000+ 용어) |
+| 주요 도메인 | 생의학, 과학 | 사회·법률·언어 | 범용 |
+| OBO 연계 | ✅ 공식 | ❌ | ❌ |
+| WordNet 연계 | ❌ | ❌ | ✅ |
+| 라이선스 | CC BY 4.0 | CC BY | 공개 |
+
+---
+
+## Domain Ontology (도메인 온톨로지)
+
+도메인 온톨로지는 특정 분야의 전문 지식을 형식화합니다. 상위 온톨로지 위에 구축되거나, 독립적으로 개발됩니다.
+
+### 주요 도메인 온톨로지 사례
+
+**의료·생명과학:**
+- **SNOMED CT** — 임상 용어 표준 (350,000+ 개념, 인간 질병·절차·해부학)
+- **Gene Ontology (GO)** — 유전자 기능 (25,000+ 용어, BFO 기반)
+- **ChEBI** — 생물학적 활성 소분자 화학 (60,000+ 개체)
+- **LOINC** — 임상 검사·측정 코드
+
+**금융·법률:**
+- **FIBO (Financial Industry Business Ontology)** — 금융 계약, 기관, 상품
+- **LKIF (Legal Knowledge Interchange Format)** — 법률 규칙, 권리, 의무
+
+**지리·공간:**
+- **GeoSPARQL** — 공간 데이터 표준 (W3C/OGC)
+- **schema.org** — 웹 구조화 데이터 (도메인 온톨로지 수준)
+
+**제조·엔지니어링:**
+- **SSN/SOSA** — 센서·관측·작동기 (W3C 표준)
+- **IFC** — 건물 정보 모델링
+
+```turtle
+# Gene Ontology 예시 (BFO 기반)
+:GO_0006915 rdf:type owl:Class ;  # apoptotic process
+    rdfs:label "apoptotic process"@en ;
+    rdfs:subClassOf :GO_0009987 ;  # cell death
+    obo:IAO_0000115 "A programmed cell death process..."@en .
+
+# BFO와의 연계
+:GO_0006915 rdfs:subClassOf bfo:Process .
+```
+
+---
+
+## Application Ontology (애플리케이션 온톨로지)
+
+애플리케이션 온톨로지는 특정 소프트웨어 시스템이나 사용 사례에 맞게 도메인 온톨로지를 더 세밀하게 특화한 것입니다. 종종 도메인 온톨로지의 부분집합을 가져와 애플리케이션 요구사항에 맞게 확장합니다.
+
+```turtle
+# 애플리케이션 온톨로지 예시: 특정 병원 EMR 시스템
+@prefix app: <http://seoul-hospital.kr/ontology#> .
+@prefix snomed: <http://snomed.info/id/> .
+
+# 도메인 온톨로지(SNOMED)의 개념을 임포트하고 제한을 추가
+app:EmergencyDiagnosis rdfs:subClassOf snomed:404684003 ;  # Clinical finding
+    rdfs:comment "응급실에서 이루어진 진단"@ko .
+
+# 로컬 데이터 요구사항 추가
+app:hasTriageLevel rdf:type owl:DatatypeProperty ;
+    rdfs:domain app:EmergencyDiagnosis ;
+    rdfs:range [ rdf:type rdfs:Datatype ;
+                 owl:oneOf ("1"^^xsd:integer "2"^^xsd:integer
+                           "3"^^xsd:integer "4"^^xsd:integer
+                           "5"^^xsd:integer) ] .
+```
+
+---
+
+## 계층별 역할 요약
+
+| 계층 | 범위 | 재사용성 | 변경 빈도 | 예시 |
+|------|------|---------|---------|------|
+| Upper Ontology | 도메인 독립 | 최고 | 거의 없음 | BFO, DOLCE, SUMO |
+| Domain Ontology | 특정 분야 | 높음 | 도메인 진화에 따라 | SNOMED, FIBO, GO |
+| Application Ontology | 특정 시스템 | 낮음 | 빈번 | 개별 병원 EMR, 금융사 리스크 시스템 |
+
+---
+
+## 상위 온톨로지 선택 가이드
+
+실무에서 어떤 상위 온톨로지를 선택해야 하는지는 맥락에 따라 달라집니다.
+
+**생의학·과학 연구 데이터를 다룬다면** — BFO를 선택하세요. OBO Foundry 생태계와의 호환성이 보장됩니다.
+
+**사회적·법률적·언어적 개념이 중요하다면** — DOLCE 또는 DUL(DOLCE+DnS Ultralite)을 검토하세요.
+
+**WordNet이나 NLP 자원과 연계해야 한다면** — SUMO가 유리합니다.
+
+**빠른 프로토타이핑이 목적이라면** — schema.org 또는 독자적인 경량 온톨로지로 시작하고, 필요 시 상위 온톨로지에 맞춰 리팩터링하세요.
+
+**상위 온톨로지 없이 시작해도 되는 경우** — 단일 조직 내부의 특정 애플리케이션이 목적이고, 외부 시스템과의 상호운용성이 요구사항에 없다면 과도한 의존성을 피할 수 있습니다.
+
+이것으로 섹션 02의 핵심 구성요소를 모두 다뤘습니다. 섹션 03에서는 이 개념들을 실제 코드로 표현하는 언어들 — RDF, RDFS, OWL 2, SHACL, SKOS, RDF-star — 을 학습합니다.
+
+---
+
+<Quiz section="02-components" client:load />

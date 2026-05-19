@@ -1,0 +1,245 @@
+---
+title: "5-2. Stanford Ontology 101"
+description: "Noy와 McGuinness의 Ontology 101 가이드를 중심으로 온톨로지 설계의 실용적 원칙과 7단계 프로세스를 학습합니다."
+sidebar:
+  order: 52
+learning_objectives:
+  - "Ontology 101의 7단계 개발 프로세스를 설명한다"
+  - "클래스 계층 설계 원칙과 흔한 실수를 파악한다"
+  - "속성(데이터 vs 객체)의 선택 기준을 적용한다"
+  - "온톨로지 설계에서 반복·점진적 접근의 중요성을 이해한다"
+prerequisites:
+  - "OWL 클래스, 속성, 인스턴스 개념"
+  - "5-1: METHONTOLOGY, On-To-Knowledge, NeOn"
+estimated_minutes: 30
+references:
+  - title: "Noy & McGuinness. Ontology Development 101. Stanford KSL-01-05 (2001)"
+    url: "https://protege.stanford.edu/publications/ontology_development/ontology101.pdf"
+  - title: "Gruber. A Translation Approach to Portable Ontology Specifications. Knowledge Acquisition 5(2) (1993)"
+    url: "https://doi.org/10.1006/knac.1993.1008"
+  - title: "Guarino. Formal Ontology in Information Systems. IOS Press (1998)"
+    url: "https://doi.org/10.3233/978-1-60750-399-4-3"
+---
+
+## Ontology 101이란
+
+2001년 Stanford Knowledge Systems Laboratory에서 발표된 Noy와 McGuinness의 "Ontology Development 101: A Guide to Creating Your First Ontology"는 온톨로지 분야에서 가장 많이 인용되고 읽히는 실용 가이드입니다. 학술 방법론인 METHONTOLOGY나 NeOn과 달리, 이 문서는 실제로 온톨로지를 처음 만드는 사람이 오늘부터 작업을 시작할 수 있도록 쓰였습니다.
+
+Protégé 온톨로지 편집기와 함께 배포되었고, 20년이 지난 지금도 온톨로지 입문 교육의 표준 교재로 사용됩니다.
+
+---
+
+## 온톨로지 개발 7단계
+
+Ontology 101은 온톨로지 개발을 7단계로 제시합니다. 순차적 절차가 아니라 **반복적·점진적** 프로세스임을 강조합니다.
+
+### 1단계: 도메인과 범위 결정
+
+먼저 세 가지 질문에 답합니다.
+
+- 온톨로지가 다루는 도메인은 무엇인가?
+- 온톨로지를 어디에 사용할 것인가?
+- 온톨로지가 답해야 할 질문은 무엇인가?
+
+마지막 질문이 중요합니다. 이것이 나중에 Competency Question으로 발전합니다.
+
+### 2단계: 기존 온톨로지 재사용 고려
+
+처음부터 만들기 전에, 이미 존재하는 온톨로지를 검토합니다. 재사용 가능한 온톨로지가 있다면 비용을 크게 줄일 수 있습니다.
+
+검토 대상:
+- 상위 온톨로지(DOLCE, BFO, SUMO)
+- 도메인 온톨로지(의료: SNOMED CT, 금융: FIBO, 유전체: GO)
+- 어휘 온톨로지(Schema.org, FOAF, Dublin Core)
+
+### 3단계: 중요 용어 열거
+
+도메인에서 사용하는 용어를 브레인스토밍합니다. 완전한 목록이 아니어도 됩니다. "포도주"를 예로 들면:
+
+> 포도주, 포도, 빈티지, 당도, 색상, 지역, 포도 품종, 양조장, 음식 궁합, 등급…
+
+이 단계에서 계층 구조나 관계를 정하지 않습니다. 용어 수집에만 집중합니다.
+
+### 4단계: 클래스 정의와 계층 구조
+
+수집된 용어를 클래스(개념)와 인스턴스(개별 사물)로 분류합니다. 계층 구조를 잡는 방법은 세 가지입니다.
+
+**하향식(Top-down)**: 가장 일반적인 개념에서 시작해 특수화
+
+```
+포도주
+├── 레드 와인
+│   ├── 까베르네 소비뇽
+│   └── 피노 누아
+└── 화이트 와인
+    ├── 샤르도네
+    └── 리슬링
+```
+
+**상향식(Bottom-up)**: 구체적 인스턴스에서 시작해 일반화
+
+**중간에서(Middle-out)**: 핵심 개념에서 양방향 확장 (Ontology 101 권장)
+
+### 5단계: 클래스 속성 정의
+
+클래스가 가질 수 있는 속성을 정의합니다. OWL에서는 두 종류입니다.
+
+**데이터 속성(Data Property)**: 클래스를 리터럴 값에 연결
+
+| 속성명 | 도메인 | 범위(Range) | 카디널리티 |
+|---|---|---|---|
+| hasVintageYear | Wine | xsd:integer | 0..1 |
+| hasSugarContent | Wine | xsd:string | 0..1 |
+| hasAlcoholicContent | Wine | xsd:float | 0..1 |
+
+**객체 속성(Object Property)**: 클래스를 다른 클래스에 연결
+
+| 속성명 | 도메인 | 범위 |
+|---|---|---|
+| madeFromGrape | Wine | Grape |
+| producedBy | Wine | Winery |
+| locatedIn | Winery | Region |
+
+### 6단계: 패싯(Facet) 정의
+
+각 속성의 세부 사항을 정의합니다.
+
+- **카디널리티**: 최솟값·최댓값 (예: 포도주 한 병은 정확히 하나의 빈티지 연도)
+- **범위(Range)**: 허용되는 값의 타입 또는 클래스
+- **도메인(Domain)**: 속성을 가지는 클래스
+
+```turtle
+:hasAlcoholicContent
+    a owl:DatatypeProperty ;
+    rdfs:domain :Wine ;
+    rdfs:range xsd:float ;
+    rdfs:comment "알코올 도수(%)를 나타냅니다." .
+```
+
+### 7단계: 인스턴스 생성
+
+클래스와 속성 정의가 완료되면 실제 개별 인스턴스(개체)를 추가합니다.
+
+```turtle
+:ChateauMargaux_2018
+    a :RedWine ;
+    :hasVintageYear 2018 ;
+    :madeFromGrape :CabernetSauvignon ;
+    :producedBy :ChateauMargaux ;
+    rdfs:label "Château Margaux 2018"@ko .
+```
+
+---
+
+## 핵심 설계 원칙
+
+### 원칙 1: 정답은 하나가 아니다
+
+온톨로지 설계에는 유일한 정답이 없습니다. 같은 도메인을 다르게 모델링할 수 있고, 어떤 모델이 더 좋은지는 **사용 맥락** 에 따라 달라집니다.
+
+"와인을 클래스로 표현할까, 속성으로 표현할까?" 라는 질문에 대한 답은 "어떤 질문에 답해야 하는가"에 달려 있습니다.
+
+### 원칙 2: 클래스 vs 인스턴스 구분
+
+가장 흔한 혼란은 "이것이 클래스인가, 인스턴스인가?"입니다.
+
+Ontology 101은 실용적 기준을 제시합니다.
+
+- 시스템이 다루는 **가장 구체적인 단위** 를 인스턴스로 봅니다
+- 그 위의 개념화는 클래스입니다
+
+예: 포도주 판매 시스템에서 "까베르네 소비뇽 2018 빈티지"가 가장 구체적 단위라면, 이것이 인스턴스입니다. 반면 와인 분류 온톨로지에서는 "까베르네 소비뇽"이 클래스가 될 수 있습니다.
+
+### 원칙 3: 클래스 계층의 두 가지 함정
+
+**함정 1 — 혼합 계층**: 서로 다른 분류 기준을 같은 계층에 섞는 것
+
+```
+# 잘못된 예: 색상 기준과 당도 기준 혼용
+Wine
+├── RedWine      (색상 기준)
+├── WhiteWine    (색상 기준)
+└── DryWine      (당도 기준)  ← 계층 기준 불일치
+```
+
+**함정 2 — 단일 자식**: 클래스가 하나의 하위 클래스만 가지는 경우
+
+단일 자식이 필요한 경우가 있지만, 대부분은 설계 재검토가 필요합니다.
+
+### 원칙 4: 속성 vs 클래스 선택
+
+어떤 개념을 클래스로 모델링할지, 속성으로 모델링할지는 중요한 설계 결정입니다.
+
+**클래스로 만들 때**: 해당 개념 자체에 속성이 있거나, 다른 개념과 관계를 맺을 때
+
+**속성으로 만들 때**: 단순히 주 개념의 특성을 기술할 때
+
+```
+# 잘못된 예: 색상을 클래스로 만든 경우
+class RedColorWine { }  ← 클래스 폭발
+
+# 올바른 예: 색상을 속성으로
+:Wine :hasColor :Red .
+```
+
+### 원칙 5: 열거형 vs 개방형
+
+클래스의 값이 고정된 목록인 경우 `owl:oneOf`를 사용합니다.
+
+```turtle
+:WineColor owl:equivalentClass [
+    a owl:Class ;
+    owl:oneOf (:Red :White :Rose)
+] .
+```
+
+향후 확장 가능성이 있으면 열거형 대신 개방형 계층을 유지합니다.
+
+---
+
+## 반복적 개발의 중요성
+
+Ontology 101이 가장 강조하는 것은 **반복과 개선** 입니다.
+
+> "Good ontologies are not designed, they are grown."
+
+처음 설계가 완벽할 필요는 없습니다. 실제 데이터와 질의를 적용해보면서 설계의 문제점이 드러나고, 수정이 필요해집니다. 이는 소프트웨어 개발의 애자일 방식과 동일한 철학입니다.
+
+**반복 사이클:**
+
+```
+초안 설계
+    ↓
+Competency Question으로 테스트
+    ↓
+문제점 파악
+    ↓
+설계 개선
+    ↓
+(반복)
+```
+
+---
+
+## Ontology 101이 다루지 않는 것
+
+이 가이드는 실용성을 위해 의도적으로 범위를 제한합니다.
+
+- OWL 추론과 공리 시스템의 깊이
+- 온톨로지 매핑과 정렬(alignment)
+- 대규모 팀 협업과 버전 관리
+- 온톨로지 평가 방법론
+
+이런 심화 주제는 이후 챕터에서 다룹니다.
+
+---
+
+## 정리
+
+Stanford Ontology 101은 복잡한 방법론 대신 실용적 7단계를 제시합니다.
+
+1. **도메인·범위 정의** → 2. **기존 온톨로지 검토** → 3. **용어 열거** → 4. **클래스 계층** → 5. **속성 정의** → 6. **패싯 정의** → 7. **인스턴스 생성**
+
+정답이 하나가 아님을 인정하고, 사용 맥락에 따라 설계를 결정하며, 반복적으로 개선하는 것이 핵심입니다.
+
+다음 챕터에서는 온톨로지가 "무엇을 답해야 하는가"를 명시적으로 정의하는 **Competency Question** 기법을 다룹니다.

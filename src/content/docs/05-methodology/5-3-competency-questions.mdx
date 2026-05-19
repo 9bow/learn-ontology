@@ -1,0 +1,278 @@
+---
+title: "5-3. Competency Question 기법"
+description: "온톨로지가 답해야 할 질문을 사전에 정의하는 Competency Question 기법의 원리, 작성 방법, 활용 패턴을 학습합니다."
+sidebar:
+  order: 53
+learning_objectives:
+  - "Competency Question의 정의와 온톨로지 개발에서의 역할을 설명한다"
+  - "좋은 CQ와 나쁜 CQ를 구분하는 기준을 적용한다"
+  - "CQ에서 클래스·속성·공리를 도출하는 과정을 실습한다"
+  - "SPARQL 쿼리로 CQ 달성 여부를 검증한다"
+prerequisites:
+  - "5-2: Stanford Ontology 101"
+  - "SPARQL SELECT 기초 (4-1)"
+estimated_minutes: 30
+references:
+  - title: "Grüninger & Fox. Methodology for the Design and Evaluation of Ontologies. IJCAI-95 Workshop (1995)"
+    url: "https://www.cs.utoronto.ca/~gruninger/papers/methodology.pdf"
+  - title: "Ren et al. Towards Systematic CQ-Driven Ontology Authoring. ESWC 2014"
+    url: "https://doi.org/10.1007/978-3-319-07443-6_4"
+  - title: "Bezerra et al. Evaluating Ontologies with Competency Questions. WI-IAT 2013"
+    url: "https://doi.org/10.1109/WI-IAT.2013.200"
+  - title: "Noy & McGuinness. Ontology Development 101. Stanford KSL-01-05 (2001)"
+    url: "https://protege.stanford.edu/publications/ontology_development/ontology101.pdf"
+---
+
+## Competency Question이란
+
+1995년 Grüninger와 Fox는 "온톨로지가 무엇을 할 수 있는지 어떻게 아는가?"라는 근본적 질문을 제기했습니다. 그들의 답이 **Competency Question(CQ)** 입니다.
+
+CQ는 "온톨로지를 사용하는 응용 시스템이 답할 수 있어야 하는 질문"입니다. 자연어로 작성되며, 온톨로지의 범위를 정의하고 설계 결정을 안내하며 완성도를 검증하는 도구 역할을 합니다.
+
+쉽게 말하면, 소프트웨어 개발의 **인수 기준(acceptance criteria)** 과 유사합니다. 온톨로지가 이 질문들에 답할 수 있으면 목적을 달성한 것입니다.
+
+---
+
+## CQ의 세 가지 역할
+
+### 역할 1: 범위 정의 도구
+
+CQ는 온톨로지에 무엇을 포함하고 무엇을 제외할지 결정합니다.
+
+예: 의약품 온톨로지를 개발한다고 가정합니다.
+
+**포함해야 할 CQ:**
+- "이 약물의 활성 성분은 무엇인가?"
+- "이 환자에게 금기인 약물은 무엇인가?"
+
+**제외할 수 있는 CQ:**
+- "이 약물의 제조 원가는 얼마인가?" (재무 도메인)
+- "이 약물의 특허는 언제 만료되는가?" (법무 도메인)
+
+두 번째 그룹은 다른 온톨로지 또는 시스템에서 다뤄야 합니다.
+
+### 역할 2: 설계 결정 안내
+
+"어떤 개념을 클래스로 만들어야 하는가?"라는 질문에 CQ가 답을 줍니다.
+
+CQ: "이 약물과 상호작용하는 다른 약물은 무엇인가?"
+
+이 질문에 답하려면:
+- `Drug` 클래스가 필요합니다
+- `interactsWith` 객체 속성이 필요합니다 (도메인: Drug, 범위: Drug)
+- 상호작용 유형(심각, 경고, 주의)을 표현할 방법이 필요합니다
+
+### 역할 3: 완성도 검증 기준
+
+온톨로지 개발이 완료되면, 각 CQ를 SPARQL로 변환해 실행합니다. 올바른 답이 반환되면 해당 CQ가 달성된 것입니다.
+
+---
+
+## 좋은 CQ의 조건
+
+### 구체성
+
+CQ는 모호하지 않아야 합니다.
+
+| 나쁜 CQ | 좋은 CQ |
+|---|---|
+| "약물에 대해 알고 싶다" | "이 약물의 투여 경로는 무엇인가?" |
+| "환자 정보를 조회하고 싶다" | "이 환자의 현재 처방된 약물 목록은?" |
+| "부작용을 알고 싶다" | "이 약물 복용 시 발생할 수 있는 심각한 부작용은?" |
+
+### 단일 초점
+
+하나의 CQ는 하나의 개념 관계에 집중합니다.
+
+**복합 CQ (분리 권장):**
+"이 약물의 성분은 무엇이고 어떤 질환에 사용하며 부작용은 무엇인가?"
+
+**분리된 CQ:**
+- CQ-1: "이 약물의 활성 성분은 무엇인가?"
+- CQ-2: "이 약물이 치료 대상으로 하는 질환은 무엇인가?"
+- CQ-3: "이 약물의 부작용은 무엇인가?"
+
+### 검증 가능성
+
+CQ는 SPARQL 또는 DL 질의로 변환할 수 있어야 합니다. "이 온톨로지는 좋은가?"처럼 주관적 평가 질문은 CQ가 아닙니다.
+
+---
+
+## CQ에서 온톨로지 요소 도출
+
+CQ를 분석해 필요한 클래스, 속성, 공리를 도출하는 과정을 도메인별로 예시합니다.
+
+### 예: 학술 논문 온톨로지
+
+**CQ 목록:**
+
+- CQ-1: "이 논문의 저자는 누구인가?"
+- CQ-2: "이 저자가 발표한 모든 논문은 무엇인가?"
+- CQ-3: "이 논문이 인용한 참고문헌은 무엇인가?"
+- CQ-4: "이 논문이 발표된 학술지 또는 컨퍼런스는 무엇인가?"
+- CQ-5: "같은 키워드를 가진 다른 논문은 무엇인가?"
+
+**도출되는 요소:**
+
+```
+클래스:
+  Paper, Author, Journal, Conference, Keyword
+
+객체 속성:
+  hasAuthor (Paper → Author)
+  cites (Paper → Paper)
+  publishedIn (Paper → Journal | Conference)
+  hasKeyword (Paper → Keyword)
+
+데이터 속성:
+  hasTitle (Paper → xsd:string)
+  hasYear (Paper → xsd:integer)
+  hasAbstract (Paper → xsd:string)
+```
+
+---
+
+## CQ를 SPARQL로 변환하는 패턴
+
+각 CQ 유형별로 대응하는 SPARQL 패턴이 있습니다.
+
+### 패턴 1: 단순 속성 조회 (CQ-1, CQ-4 유형)
+
+```sparql
+PREFIX ex: <http://example.org/paper/>
+
+# CQ-1: "이 논문의 저자는 누구인가?"
+SELECT ?authorName
+WHERE {
+  ex:Paper_2024_001 ex:hasAuthor ?author .
+  ?author rdfs:label ?authorName .
+}
+```
+
+### 패턴 2: 역방향 조회 (CQ-2 유형)
+
+```sparql
+# CQ-2: "이 저자가 발표한 모든 논문은?"
+SELECT ?paper ?title ?year
+WHERE {
+  ?paper ex:hasAuthor ex:Author_KimMinsu ;
+         ex:hasTitle ?title ;
+         ex:hasYear ?year .
+}
+ORDER BY DESC(?year)
+```
+
+### 패턴 3: 다단계 관계 (CQ-3 유형)
+
+```sparql
+# CQ-3: "이 논문이 인용한 참고문헌의 저자는?"
+SELECT DISTINCT ?citedPaper ?citedTitle ?citedAuthorName
+WHERE {
+  ex:Paper_2024_001 ex:cites ?citedPaper .
+  ?citedPaper ex:hasTitle ?citedTitle ;
+              ex:hasAuthor ?citedAuthor .
+  ?citedAuthor rdfs:label ?citedAuthorName .
+}
+```
+
+### 패턴 4: 집합 기반 조회 (CQ-5 유형)
+
+```sparql
+# CQ-5: "같은 키워드를 가진 다른 논문은?"
+SELECT DISTINCT ?relatedPaper ?relatedTitle
+WHERE {
+  ex:Paper_2024_001 ex:hasKeyword ?keyword .
+  ?relatedPaper ex:hasKeyword ?keyword .
+  FILTER (?relatedPaper != ex:Paper_2024_001)
+  ?relatedPaper ex:hasTitle ?relatedTitle .
+}
+```
+
+---
+
+## CQ 작성 워크숍 진행 방법
+
+도메인 전문가와 함께 CQ를 도출하는 실용적 절차입니다.
+
+### 1단계: 스토리텔링 (30분)
+
+"온톨로지를 사용하는 시나리오를 구체적인 이야기로 말해주세요."
+
+전문가가 업무 시나리오를 자유롭게 서술하도록 합니다. 이 과정에서 자연스럽게 핵심 개념과 관계가 드러납니다.
+
+### 2단계: 질문 추출 (20분)
+
+스토리에서 "이것을 알아야 한다"고 언급된 것들을 질문 형태로 변환합니다.
+
+### 3단계: 우선순위 분류 (15분)
+
+추출된 CQ를 세 그룹으로 분류합니다.
+
+- **필수(Must)**: 핵심 사용 사례 지원에 반드시 필요
+- **중요(Should)**: 주요 기능이지만 1차 개발에서 제외 가능
+- **선택(Could)**: 향후 확장 시 포함
+
+### 4단계: SPARQL 변환 시도 (30분)
+
+온톨로지 개발자가 각 CQ를 SPARQL로 변환해봅니다. 변환이 어려운 CQ는 모호하거나 도메인 외부의 지식이 필요한 경우입니다.
+
+---
+
+## CQ 평가 사이클
+
+CQ는 일회성 산출물이 아닙니다. 온톨로지가 발전하면서 CQ도 갱신됩니다.
+
+```
+초기 CQ 작성
+      ↓
+온톨로지 1차 설계
+      ↓
+CQ → SPARQL 변환 및 실행
+      ↓
+미답변 CQ 식별
+      ↓
+온톨로지 수정
+      ↓
+새로운 요구사항 → 새 CQ 추가
+      ↓
+(반복)
+```
+
+미답변 CQ는 두 가지 원인입니다.
+
+1. **온톨로지 불완전**: 클래스 또는 속성이 누락
+2. **CQ 범위 초과**: 해당 온톨로지의 범위를 벗어난 질문
+
+---
+
+## CQ와 SHACL 제약의 관계
+
+CQ는 "온톨로지가 답해야 할 질문"이고, SHACL은 "데이터가 만족해야 할 제약"입니다. 두 도구는 상호 보완적입니다.
+
+CQ: "이 약물의 투여 경로는 무엇인가?"
+→ SHACL 제약: 모든 Drug 인스턴스는 `routeOfAdministration` 속성을 정확히 하나 가져야 한다
+
+```turtle
+ex:DrugShape
+    a sh:NodeShape ;
+    sh:targetClass ex:Drug ;
+    sh:property [
+        sh:path ex:routeOfAdministration ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "약물에는 투여 경로가 정확히 하나 있어야 합니다."
+    ] .
+```
+
+---
+
+## 정리
+
+Competency Question은 온톨로지 개발의 시작점이자 완성도를 검증하는 기준입니다.
+
+- **좋은 CQ** 는 구체적이고 단일 초점을 가지며 SPARQL로 변환 가능합니다
+- CQ에서 클래스, 속성, 공리를 체계적으로 도출할 수 있습니다
+- CQ→SPARQL 변환으로 온톨로지 달성 여부를 객관적으로 검증합니다
+- 온톨로지 발전과 함께 CQ도 지속적으로 갱신해야 합니다
+
+다음 챕터에서는 온톨로지의 버전 관리, 변경 관리, 그리고 FAIR 원칙을 다룹니다.

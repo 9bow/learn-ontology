@@ -1,0 +1,255 @@
+---
+title: "4-4. SERVICE 키워드와 Federated Query"
+description: "SPARQL 1.1 Federated Query를 이용해 여러 SPARQL 엔드포인트를 단일 쿼리에서 연결하는 방법을 학습합니다."
+sidebar:
+  order: 44
+learning_objectives:
+  - "SERVICE 키워드의 문법과 동작 원리를 이해한다"
+  - "DBpedia·Wikidata·공개 엔드포인트를 연결하는 실제 Federated Query를 작성한다"
+  - "Federated Query의 성능 특성과 한계를 파악한다"
+  - "SERVICE SILENT로 부분 장애를 허용하는 쿼리를 구현한다"
+prerequisites:
+  - "4-1: SPARQL SELECT 기초"
+  - "4-3: Property Path"
+estimated_minutes: 28
+references:
+  - title: "W3C. SPARQL 1.1 Federated Query (2013)"
+    url: "https://www.w3.org/TR/sparql11-federated-query/"
+  - title: "W3C. SPARQL 1.1 Federated Query Recommendation"
+    url: "https://www.w3.org/TR/sparql11-federated-query/#intro"
+  - title: "Saleem et al. DAW: Federated SPARQL Query Processing. ISWC 2013"
+    url: "https://doi.org/10.1007/978-3-642-41335-3_29"
+---
+
+## Federated Query란
+
+Linked Data의 핵심 약속은 "데이터를 연결한다"는 것입니다. 그러나 현실에서 모든 데이터를 하나의 트리플스토어에 적재하는 것은 불가능하고 바람직하지도 않습니다. 기관마다 자체 엔드포인트를 운영하고, 데이터 거버넌스 규정이 중앙 집중을 막기도 합니다.
+
+**Federated Query** 는 이 문제를 해결합니다. SPARQL 1.1의 `SERVICE` 키워드를 사용하면 단일 쿼리 안에서 여러 원격 엔드포인트에 서브쿼리를 위임하고, 결과를 로컬에서 조인합니다.
+
+```
+로컬 쿼리 엔진
+    │
+    ├─ SERVICE <엔드포인트 A> { ... }  →  엔드포인트 A에 서브쿼리 전송
+    ├─ SERVICE <엔드포인트 B> { ... }  →  엔드포인트 B에 서브쿼리 전송
+    └─ 반환된 결과를 로컬에서 조인
+```
+
+---
+
+## SERVICE 기본 문법
+
+```sparql
+SELECT ?s ?p ?o
+WHERE {
+  SERVICE <http://remote-endpoint.example.org/sparql> {
+    ?s ?p ?o .
+  }
+}
+LIMIT 10
+```
+
+`SERVICE` 뒤에 엔드포인트 URI를 지정하고, 중괄호 안에 원격 엔드포인트에서 실행할 그래프 패턴을 작성합니다. 로컬 엔진은 해당 패턴을 원격 엔드포인트에 전달하고, 결과를 받아 나머지 로컬 패턴과 조인합니다.
+
+---
+
+## 예제 1: DBpedia + Wikidata 조인
+
+DBpedia에서 한국 출신 물리학자 목록을 가져와, Wikidata에서 각 인물의 수상 이력을 보강합니다.
+
+```sparql
+PREFIX dbo:  <http://dbpedia.org/ontology/>
+PREFIX dbr:  <http://dbpedia.org/resource/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl:  <http://www.w3.org/2002/07/owl#>
+PREFIX wd:   <http://www.wikidata.org/entity/>
+PREFIX wdt:  <http://www.wikidata.org/prop/direct/>
+
+SELECT ?person ?name ?award ?awardLabel
+WHERE {
+  # DBpedia: 한국 출신 물리학자
+  ?person a dbo:Physicist ;
+          dbo:birthPlace ?place ;
+          rdfs:label ?name .
+  ?place dbo:country dbr:South_Korea .
+  FILTER (lang(?name) = "en")
+
+  # owl:sameAs로 Wikidata URI 확보
+  ?person owl:sameAs ?wdPerson .
+  FILTER (STRSTARTS(STR(?wdPerson), "http://www.wikidata.org/entity/"))
+
+  # Wikidata: 수상 이력 조회
+  SERVICE <https://query.wikidata.org/sparql> {
+    ?wdPerson wdt:P166 ?award .
+    ?award rdfs:label ?awardLabel .
+    FILTER (lang(?awardLabel) = "ko")
+  }
+}
+ORDER BY ?name
+```
+
+`owl:sameAs` 링크를 브리지로 사용해 두 데이터셋을 연결하는 전형적인 패턴입니다.
+
+---
+
+## 예제 2: SERVICE SILENT — 부분 장애 허용
+
+원격 엔드포인트가 응답하지 않으면 기본적으로 전체 쿼리가 실패합니다. `SERVICE SILENT`를 사용하면 해당 서비스에서 오류가 발생해도 나머지 결과는 반환합니다.
+
+```sparql
+PREFIX dbo:  <http://dbpedia.org/ontology/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl:  <http://www.w3.org/2002/07/owl#>
+PREFIX wdt:  <http://www.wikidata.org/prop/direct/>
+
+SELECT ?company ?name ?ceo ?ceoLabel
+WHERE {
+  ?company a dbo:Company ;
+           rdfs:label ?name .
+  FILTER (lang(?name) = "ko")
+
+  OPTIONAL {
+    ?company owl:sameAs ?wdCompany .
+    FILTER (STRSTARTS(STR(?wdCompany), "http://www.wikidata.org/entity/"))
+
+    SERVICE SILENT <https://query.wikidata.org/sparql> {
+      ?wdCompany wdt:P169 ?ceo .
+      ?ceo rdfs:label ?ceoLabel .
+      FILTER (lang(?ceoLabel) = "ko")
+    }
+  }
+}
+LIMIT 20
+```
+
+`SERVICE SILENT`는 프로덕션 환경에서 외부 데이터 소스에 의존할 때 안정성을 높이는 핵심 패턴입니다.
+
+---
+
+## 예제 3: 변수로 동적 엔드포인트 지정
+
+엔드포인트 URI를 변수로 지정하는 것도 가능합니다. 단, 보안과 성능 이유로 대부분의 엔드포인트는 이를 비활성화합니다.
+
+```sparql
+PREFIX sd: <http://www.w3.org/ns/sparql-service-description#>
+
+SELECT ?endpoint ?label
+WHERE {
+  # 로컬 서비스 레지스트리에서 엔드포인트 목록 조회
+  ?service a sd:Service ;
+           sd:endpoint ?endpoint ;
+           rdfs:label ?label .
+}
+```
+
+동적 엔드포인트보다는 정적 엔드포인트를 `VALUES`로 열거하는 방식이 더 안전합니다.
+
+---
+
+## 예제 4: Wikidata label 서비스 활용
+
+Wikidata는 `wikibase:label`이라는 전용 서비스를 제공해 엔티티 레이블을 자동 처리합니다.
+
+```sparql
+PREFIX wd:  <http://www.wikidata.org/entity/>
+PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+
+SELECT ?country ?countryLabel ?population ?capital ?capitalLabel
+WHERE {
+  ?country wdt:P31 wd:Q6256 ;         # 국가
+           wdt:P1082 ?population ;     # 인구
+           wdt:P36 ?capital .          # 수도
+
+  FILTER (?population > 50000000)
+
+  SERVICE wikibase:label {
+    bd:serviceParam wikibase:language "ko,en" .
+  }
+}
+ORDER BY DESC(?population)
+LIMIT 20
+```
+
+`wikibase:label` 서비스는 Wikidata 전용 확장입니다. `?entityLabel` 패턴으로 모든 엔티티의 레이블을 자동 바인딩합니다.
+
+---
+
+## Federated Query의 실행 계획
+
+로컬 엔진이 Federated Query를 처리하는 방식:
+
+1. **서브쿼리 추출**: SERVICE 블록 안의 패턴을 독립 쿼리로 변환
+2. **원격 전송**: HTTP POST로 원격 엔드포인트에 SPARQL 쿼리 전송
+3. **결과 수신**: XML/JSON 형식으로 결과 수신
+4. **로컬 조인**: 수신된 결과를 로컬 데이터와 해시 조인 또는 중첩 루프 조인
+
+**중요**: 조인 순서가 성능에 결정적입니다. 변수를 먼저 바인딩하면 원격 엔드포인트에 더 좁은 쿼리를 전달할 수 있습니다.
+
+```sparql
+# 비효율: 원격 엔드포인트에 전체 스캔 요청
+WHERE {
+  SERVICE <...> { ?x ?p ?y . }
+  ?y dbo:country dbr:Korea .
+}
+
+# 효율: 로컬 필터 결과를 원격에 전달
+WHERE {
+  ?y dbo:country dbr:Korea .
+  SERVICE <...> { ?x ?p ?y . }
+}
+```
+
+---
+
+## 한계와 대안
+
+| 한계 | 설명 | 대안 |
+|---|---|---|
+| 네트워크 지연 | 원격 HTTP 왕복 비용 | 로컬 미러 데이터 구축 |
+| 엔드포인트 가용성 | 원격 서비스 다운 시 실패 | `SERVICE SILENT` + `OPTIONAL` |
+| 타임아웃 | 원격 엔드포인트의 쿼리 제한 | 서브쿼리 단순화, 결과 캐시 |
+| 조인 폭발 | 대용량 결과 간 카르테시안 조인 | VALUES로 조인 키 제한 |
+| 방화벽 | 내부망에서 외부 접근 불가 | 게이트웨이 또는 VPN |
+
+---
+
+## 실전 패턴: VALUES로 조인 효율화
+
+원격 엔드포인트에 전달할 변수를 먼저 바인딩해 쿼리 범위를 좁힙니다.
+
+```sparql
+PREFIX wd:  <http://www.wikidata.org/entity/>
+PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+
+SELECT ?company ?revenue ?revenueYear
+WHERE {
+  # 조회 대상 기업 명시
+  VALUES ?company {
+    wd:Q312    # Apple
+    wd:Q9662   # Samsung
+    wd:Q4970   # LG
+    wd:Q37158  # Alphabet
+  }
+
+  SERVICE <https://query.wikidata.org/sparql> {
+    ?company wdt:P2139 ?revenue ;
+             wdt:P585  ?revenueYear .
+  }
+}
+ORDER BY DESC(?revenue)
+```
+
+`VALUES`로 대상을 미리 지정하면 원격 엔드포인트가 전체 데이터셋을 스캔하지 않고 해당 엔티티만 조회합니다.
+
+---
+
+## 정리
+
+Federated Query는 Linked Data의 분산된 특성을 그대로 활용하는 SPARQL의 핵심 기능입니다.
+
+- `SERVICE <URI> { ... }` 로 원격 엔드포인트에 서브쿼리 위임
+- `SERVICE SILENT` 로 부분 장애 허용
+- 변수를 먼저 바인딩해 원격 쿼리 범위 최소화
+- `VALUES` 조합으로 조인 효율 극대화
+
+다음 챕터에서는 SPARQL을 Cypher, GQL과 비교해 각 언어의 강점과 적합한 사용 맥락을 분석합니다.
