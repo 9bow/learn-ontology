@@ -3,7 +3,7 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import react from '@astrojs/react';
 
-const GA_ID = 'G-XXXXXXXXXX';
+const GA_ID = 'G-S7W9XQSF8K';
 
 export default defineConfig({
   site: 'https://9bow.github.io',
