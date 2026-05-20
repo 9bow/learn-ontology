@@ -24,6 +24,40 @@ references:
 
 레이블 프로퍼티 그래프(Label Property Graph, LPG)는 노드와 엣지 각각에 레이블(타입)과 프로퍼티(key-value)를 직접 붙이는 그래프 모델이다. RDF가 트리플 단위로 모든 것을 표현하는 것과 달리, LPG는 객체 지향적 표현이 자연스럽고 개발자 친화적인 API를 제공한다.
 
+```text
+RDF 트리플 vs LPG 노드-엣지 구조 비교
+
+RDF 트리플 모델
+  (주어)──[술어]──▶(목적어)
+  <:Person/Alice>──[schema:knows]──▶<:Person/Bob>
+  <:Person/Alice>──[schema:age]──▶"30"^^xsd:integer
+  <:Person/Alice>──[rdf:type]──▶<owl:Class/Person>
+
+  ⚡ 식별자: 전역 IRI (https://...)
+  ⚡ 엣지 속성: RDF-star 필요
+  ⚡ 쿼리: SPARQL
+  ⚡ 추론: OWL 공리 기반
+
+LPG (레이블 프로퍼티 그래프) 모델
+  ┌──────────────────┐       ┌──────────────────┐
+  │ :Person          │       │ :Person          │
+  │ name: "Alice"    │─KNOWS▶│ name: "Bob"      │
+  │ age: 30          │       │ age: 25          │
+  └──────────────────┘       └──────────────────┘
+         │
+         │ LIVES_IN [since: 2020]  ← 엣지에 속성 직접 붙임
+         ▼
+  ┌──────────────────┐
+  │ :City            │
+  │ name: "Seoul"    │
+  └──────────────────┘
+
+  ⚡ 식별자: 내부 ID 또는 속성
+  ⚡ 엣지 속성: 기본 지원
+  ⚡ 쿼리: Cypher / GSQL / AQL
+  ⚡ 추론: 없음 (절차적)
+```
+
 ## RDF vs LPG 핵심 차이
 
 | 항목 | RDF | LPG |

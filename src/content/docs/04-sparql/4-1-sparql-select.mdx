@@ -2,7 +2,7 @@
 title: "4-1. SPARQL 1.1 SELECT 기초"
 description: "SPARQL 1.1 SELECT 쿼리의 구조와 핵심 기능을 실행 가능한 예제 중심으로 학습합니다."
 sidebar:
-  order: 41
+  order: 1
 learning_objectives:
   - "SPARQL의 기본 문법 구조(PREFIX, SELECT, WHERE, FILTER)를 이해한다"
   - "변수 바인딩, OPTIONAL, UNION, MINUS 패턴을 활용한 쿼리를 작성한다"
@@ -21,6 +21,50 @@ references:
     url: "https://query.wikidata.org/"
   - title: "DBpedia SPARQL Endpoint"
     url: "https://dbpedia.org/sparql"
+---
+
+## SPARQL SELECT 쿼리 실행 흐름
+
+```text
+사용자 질의 (자연어)
+"인구 50만 이상 한국 도시를 인구순으로 보여줘"
+        │
+        ▼
+┌───────────────────────────────────┐
+│       SPARQL SELECT 쿼리 작성      │
+│                                   │
+│  PREFIX dbo: <...>                │
+│  SELECT ?city ?name ?population   │
+│  WHERE {                          │
+│    ?city a dbo:City ;             │  ← 트리플 패턴 매칭
+│          dbo:country dbr:Korea ;  │
+│          rdfs:label ?name ;       │
+│          dbo:populationTotal ?pop │
+│    FILTER (lang(?name) = "ko")    │  ← 조건 필터
+│    FILTER (?pop > 500000)         │
+│  }                                │
+│  ORDER BY DESC(?pop)              │  ← 정렬
+│  LIMIT 10                         │  ← 페이징
+└──────────────┬────────────────────┘
+               │
+               ▼
+┌───────────────────────────────────┐
+│      SPARQL 엔드포인트             │
+│  (Fuseki / GraphDB / Virtuoso 등) │
+│                                   │
+│  RDF 그래프에서 패턴 매칭 수행    │
+└──────────────┬────────────────────┘
+               │
+               ▼
+┌───────────────────────────────────┐
+│       결과 집합 (표 형태)          │
+│  city       │ name   │ population │
+│  dbr:Seoul  │ "서울" │ 9,776,000  │
+│  dbr:Busan  │ "부산" │ 3,350,000  │
+│  ...        │ ...    │ ...        │
+└───────────────────────────────────┘
+```
+
 ---
 
 ## SPARQL이란

@@ -2,7 +2,7 @@
 title: "4-3. Property Path와 다중 홉 질의"
 description: "SPARQL 1.1 Property Path 문법을 이용해 그래프의 임의 깊이 경로를 탐색하는 방법을 학습합니다."
 sidebar:
-  order: 43
+  order: 3
 learning_objectives:
   - "Property Path의 기본 연산자(순서, 대안, 역방향, 클로저)를 이해한다"
   - "임의 깊이 탐색(+ 와 *)을 이용한 전이적 관계 질의를 작성한다"
@@ -18,6 +18,44 @@ references:
     url: "https://www.w3.org/TR/sparql11-query/"
   - title: "DuCharme, B. Learning SPARQL 2nd ed. O'Reilly (2013)"
     url: "https://www.oreilly.com/library/view/learning-sparql/9781449371784/"
+---
+
+## Property Path 연산자 시각화
+
+```text
+기본 트리플 패턴 (정확히 1홉)
+  A ──p──▶ B
+
+순서 경로 (/)  "p1 다음 p2"
+  A ──p1──▶ B ──p2──▶ C
+  표기: ?a p1/p2 ?c
+
+대안 경로 (|)  "p1 또는 p2"
+  A ──p1──▶ B   또는   A ──p2──▶ B
+  표기: ?a p1|p2 ?b
+
+하나 이상 (+)  "1번 이상 반복"
+  A ──p──▶ B ──p──▶ C ──p──▶ D ...
+  표기: ?a p+ ?d      ← 임의 깊이 탐색
+
+0 이상 (*)  "자기 자신 포함"
+  A (자신) 또는 A ──p──▶ B ──p──▶ ...
+  표기: ?a p* ?x      ← 시작 노드도 포함
+
+역방향 (^)  "방향 반전"
+  B ──p──▶ A  →  A ^p B 로 표기
+  표기: ?b ^dbo:team dbr:ManchesterUnited
+
+부정 (!)  "이 서술어 제외 모두"
+  A ──(p가 아닌 모든 서술어)──▶ B
+  표기: ?a !(rdf:type|rdfs:label) ?b
+
+실용 예시:
+  rdfs:subClassOf+   ← 모든 상위 클래스 탐색
+  skos:narrower*     ← 하위 개념 전체(자신 포함)
+  dbo:parent/dbo:parent ← 조부모 탐색
+```
+
 ---
 
 ## Property Path란

@@ -22,6 +22,35 @@ references:
     url: "https://www.w3.org/TR/skos-primer/"
 ---
 
+## SKOS 계층 구조: broader / narrower
+
+```text
+skos:ConceptScheme: 항생제 분류 어휘
+│
+└── [항생제] Antibiotic          ← skos:topConceptOf
+      skos:narrower ▼
+      ├── [베타-락탐] BetaLactam
+      │     skos:broader ▲ Antibiotic
+      │     skos:narrower ▼
+      │     ├── [페니실린] Penicillin
+      │     │     skos:broader ▲ BetaLactam
+      │     │     skos:narrower ▼
+      │     │     ├── [아목시실린] Amoxicillin
+      │     │     └── [암피실린]  Ampicillin
+      │     └── [세팔로스포린] Cephalosporin
+      └── [마크로라이드] Macrolide
+            skos:broader ▲ Antibiotic
+
+skos:related (수평 연관, 대칭):
+  Penicillin ◀──skos:related──▶ AllergyReaction
+
+skos:exactMatch (어휘 간 매핑):
+  Penicillin ──exactMatch──▶ <MeSH: D010406>
+  Penicillin ──closeMatch──▶ <Wikidata: Q403>
+```
+
+---
+
 ## SKOS란 무엇인가
 
 도서관, 정부기관, 연구기관에는 수십 년간 축적된 시소러스와 통제 어휘(controlled vocabulary)가 있습니다. MeSH(의학 주제 표목), EuroVoc(유럽연합 다국어 시소러스), 국립국어원 표준국어대사전 관련어 등이 그 예입니다. 이 자산을 링크드 데이터 생태계에서 활용하려면 표준화된 방식이 필요했습니다.

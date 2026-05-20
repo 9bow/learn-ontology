@@ -2,7 +2,7 @@
 title: "6-4. AIP × Ontology — 안전한 LLM 에이전트"
 description: "Palantir AIP(Artificial Intelligence Platform)가 Ontology를 활용해 LLM 에이전트의 환각·권한 이탈·감사 불가 문제를 해결하는 아키텍처를 학습합니다."
 sidebar:
-  order: 64
+  order: 4
 learning_objectives:
   - "AIP Logic의 Ontology 기반 에이전트 아키텍처를 설명한다"
   - "Ontology가 LLM 에이전트의 세 가지 안전 문제를 해결하는 원리를 이해한다"
@@ -40,6 +40,43 @@ LLM이 실행한 작업의 이유와 경로를 추적하기 어렵습니다. 규
 Palantir AIP는 Ontology를 통해 이 세 문제를 구조적으로 해결하는 접근을 제시합니다.
 
 ---
+
+```text
+LLM→Ontology→Action 흐름 (AIP 안전 아키텍처)
+┌──────────────────────────────────────────────────────┐
+│  사용자 자연어 입력                                      │
+│  "KE-301 정비를 내일로 미뤄줘"                          │
+└─────────────────────┬────────────────────────────────┘
+                      ▼
+         ┌────────────────────────┐
+         │      AIP Logic         │
+         │  ┌──────────────────┐  │
+         │  │  LLM (GPT/Claude)│  │
+         │  │  Intent 파악      │  │
+         │  └──────────────────┘  │
+         │  Tool Call 결정         │
+         │  RescheduleTask ▶      │
+         └────────────┬───────────┘
+                      ▼
+         ┌────────────────────────┐
+         │    Ontology 레이어      │
+         │  ① 권한 검사            │
+         │    currentUser.role?   │
+         │  ② 파라미터 타입 검증   │
+         │  ③ 비즈니스 규칙 검증   │
+         │    newDate > today?    │
+         └────────────┬───────────┘
+                      │
+         ┌────────────┴───────────┐
+         │              │         │
+      실패(거부)         │       성공
+         │           확인 요청    │
+         ▼           (Human      ▼
+  오류 반환          in loop)  Object 업데이트
+                                  │
+                              감사 로그 기록
+                              (3계층: 대화/Tool/변경)
+```
 
 ## AIP 아키텍처 개요
 

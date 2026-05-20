@@ -26,6 +26,43 @@ references:
 
 자연어 질문을 SPARQL이나 Cypher 쿼리로 자동 변환하는 기술(KBQA: Knowledge Base Question Answering)은 전문 지식 없이도 지식그래프를 활용할 수 있게 하는 핵심 인터페이스다. "스티브 잡스가 설립한 회사는?" 같은 질문을 SPARQL로 자동 변환해 실행하면 사용자가 쿼리 언어를 몰라도 KG를 활용할 수 있다.
 
+```text
+자연어 → SPARQL 변환 파이프라인
+
+사용자 질의: "애플의 설립자가 다닌 대학은?"
+     │
+     ▼
+┌─────────────────────────────────────┐
+│  1. 스키마 링킹 (Schema Linking)      │
+│     "애플" → schema:Organization     │
+│     "설립자" → schema:founder         │
+│     "대학" → schema:alumniOf         │
+└──────────────────┬──────────────────┘
+                   ▼
+┌─────────────────────────────────────┐
+│  2. SPARQL 초안 생성 (LLM)           │
+│  SELECT ?univ WHERE {               │
+│    ?org schema:name "애플" ;         │
+│         schema:founder ?person .    │
+│    ?person schema:alumniOf ?univ .  │
+│  }                                  │
+└──────────────────┬──────────────────┘
+                   ▼
+┌─────────────────────────────────────┐
+│  3. 구문 검증 (SPARQL 파서)           │
+│     오류 → LLM 피드백 → 재생성        │
+└──────────────────┬──────────────────┘
+                   ▼
+┌─────────────────────────────────────┐
+│  4. KG 실행 → 결과 반환              │
+│     ?univ → "Reed College",         │
+│             "Stanford University"   │
+└─────────────────────────────────────┘
+
+현재 최고 성능: LC-QuAD 2.0 기준 60~75% Execution Accuracy
+단순 질의 → 완전 자동화 가능 / 다중 홉·집계 → 사람 검토 필요
+```
+
 ## 기술적 어려움
 
 Text-to-SPARQL/Cypher는 일반 Text-to-SQL보다 어렵다. 주요 이유는 세 가지다.

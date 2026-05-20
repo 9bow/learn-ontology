@@ -31,6 +31,40 @@ import Quiz from '../../../components/learning/Quiz.tsx';
 
 ---
 
+## ORKG 데이터 모델
+
+```text
+ORKG 핵심 데이터 모델
+──────────────────────────────────────────────────────────
+ ┌──────────────────────────────────────────────────────┐
+ │  orkg:Paper (논문)                                   │
+ │  "Attention Is All You Need" (Vaswani et al. 2017)  │
+ └────────────────────┬─────────────────────────────────┘
+                      │ orkg:hasContribution
+                      ▼
+ ┌──────────────────────────────────────────────────────┐
+ │  orkg:Contribution (연구 기여)                       │
+ │  "Transformer 기계번역 성능 측정"                    │
+ └────┬──────────────────┬──────────────────┬───────────┘
+      │                  │                  │
+      │ addresses        │ usesMethod       │ hasResult
+      ▼                  ▼                  ▼
+ ┌──────────┐      ┌──────────┐      ┌──────────────┐
+ │ Problem  │      │  Method  │      │   Result     │
+ │기계번역  │      │Transformer│     │BLEU: 28.4   │
+ │EN→DE     │      │(Attention)│     │Dataset: WMT │
+ └──────────┘      └──────────┘      └──────────────┘
+
+ 비교 테이블 (ORKG Comparison):
+ ┌─────────────────┬──────────┬──────────┬────────────┐
+ │ 논문            │ 모델     │ BLEU     │ 언어쌍     │
+ ├─────────────────┼──────────┼──────────┼────────────┤
+ │ Vaswani (2017)  │Transformer│ 28.4    │ EN→DE      │
+ │ Wu et al.(2016) │  GNMT    │  26.3   │ EN→DE      │
+ └─────────────────┴──────────┴──────────┴────────────┘
+ 각 셀 = RDF 트리플, SPARQL로 조회·필터·집계 가능
+```
+
 ## ORKG: Open Research Knowledge Graph
 
 **ORKG(Open Research Knowledge Graph)** 는 독일 하노버 TIB(Leibniz Information Centre for Science and Technology)가 주도하는 오픈 프로젝트입니다. 목표는 과학 논문의 핵심 내용을 RDF 트리플로 표현해 비교 가능하고 재사용 가능한 형태로 만드는 것입니다.

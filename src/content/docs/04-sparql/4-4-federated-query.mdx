@@ -2,7 +2,7 @@
 title: "4-4. SERVICE 키워드와 Federated Query"
 description: "SPARQL 1.1 Federated Query를 이용해 여러 SPARQL 엔드포인트를 단일 쿼리에서 연결하는 방법을 학습합니다."
 sidebar:
-  order: 44
+  order: 4
 learning_objectives:
   - "SERVICE 키워드의 문법과 동작 원리를 이해한다"
   - "DBpedia·Wikidata·공개 엔드포인트를 연결하는 실제 Federated Query를 작성한다"
@@ -19,6 +19,40 @@ references:
     url: "https://www.w3.org/TR/sparql11-federated-query/#intro"
   - title: "Saleem et al. DAW: Federated SPARQL Query Processing. ISWC 2013"
     url: "https://doi.org/10.1007/978-3-642-41335-3_29"
+---
+
+## SERVICE 분산 쿼리 아키텍처
+
+```text
+클라이언트 / 로컬 SPARQL 엔진
+┌─────────────────────────────────────────────┐
+│  SELECT ?person ?name ?award                │
+│  WHERE {                                    │
+│    # 로컬 패턴 (또는 기본 엔드포인트)        │
+│    ?person a dbo:Physicist ;                │
+│            rdfs:label ?name .               │
+│    ?person owl:sameAs ?wdPerson .           │
+│                                             │
+│    SERVICE <wikidata.org/sparql> { ─────────┼──▶ ┌──────────────────┐
+│      ?wdPerson wdt:P166 ?award .            │    │  Wikidata         │
+│    }                                        │    │  엔드포인트       │
+│                                             │◀───┤  수상 이력 반환   │
+│    SERVICE SILENT <dbpedia.org/sparql> { ───┼──▶ └──────────────────┘
+│      ?person dbo:birthPlace ?place .        │
+│    }                                        │◀───┌──────────────────┐
+│  }                                          │    │  DBpedia          │
+└────────────────┬────────────────────────────┘    │  엔드포인트       │
+                 │                                 │  (SILENT: 실패    │
+                 │ 결과 로컬 조인                  │   허용)           │
+                 ▼                                 └──────────────────┘
+         최종 결과 반환
+
+핵심 패턴:
+  SERVICE <URL> { ... }         → 실패 시 전체 쿼리 실패
+  SERVICE SILENT <URL> { ... }  → 실패 허용, 나머지 결과 유지
+  VALUES + SERVICE              → 조인 키 먼저 바인딩 → 성능 향상
+```
+
 ---
 
 ## Federated Query란

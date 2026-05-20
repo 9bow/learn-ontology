@@ -2,7 +2,7 @@
 title: "5-3. Competency Question 기법"
 description: "온톨로지가 답해야 할 질문을 사전에 정의하는 Competency Question 기법의 원리, 작성 방법, 활용 패턴을 학습합니다."
 sidebar:
-  order: 53
+  order: 3
 learning_objectives:
   - "Competency Question의 정의와 온톨로지 개발에서의 역할을 설명한다"
   - "좋은 CQ와 나쁜 CQ를 구분하는 기준을 적용한다"
@@ -22,6 +22,37 @@ references:
   - title: "Noy & McGuinness. Ontology Development 101. Stanford KSL-01-05 (2001)"
     url: "https://protege.stanford.edu/publications/ontology_development/ontology101.pdf"
 ---
+
+```text
+CQ → 온톨로지 요소 매핑 흐름
+┌─────────────────────────────────────────────────────┐
+│  자연어 CQ (Competency Question)                      │
+│  "이 약물과 상호작용하는 다른 약물은 무엇인가?"          │
+└──────────────────────┬──────────────────────────────┘
+                       ▼
+          ┌────────────────────────┐
+          │  명사 추출 → 클래스 후보  │
+          │  Drug (약물)            │
+          └────────────┬───────────┘
+                       ▼
+          ┌────────────────────────┐
+          │  동사/관계 추출 → 속성   │
+          │  interactsWith         │
+          │  (도메인: Drug          │
+          │   범위: Drug)           │
+          └────────────┬───────────┘
+                       ▼
+          ┌────────────────────────┐
+          │  수식어 추출 → 공리/제약  │
+          │  상호작용 유형            │
+          │  (심각/경고/주의)         │
+          └────────────┬───────────┘
+                       ▼
+┌─────────────────────────────────────────────────────┐
+│  SPARQL 변환 → 온톨로지 달성 여부 검증                  │
+│  SELECT ?drug WHERE { ?x :interactsWith ?drug . }   │
+└─────────────────────────────────────────────────────┘
+```
 
 ## Competency Question이란
 

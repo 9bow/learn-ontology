@@ -97,7 +97,7 @@
   },
   {
     "id": "q9",
-    "question": "SNOMED CT에서 '전처치 Fully Defined Concept'의 특징은?",
+    "question": "SNOMED CT에서 '완전 정의(Fully Defined) Concept'의 특징은?",
     "options": [
       "사람이 직접 정의한 개념",
       "필요충분조건 공리로 완전히 정의되어 추론기가 분류할 수 있는 개념",

@@ -8,8 +8,8 @@ learning_objectives:
   - FIBO의 모듈 구조(Foundations·Business Entities·Financial Business and Commerce 등)를 도식화할 수 있다
   - OWL 2 DL을 기반으로 한 FIBO의 추론 가능성과 실제 배포 고려사항을 비교할 수 있다
 prerequisites:
-  - "03-languages"
-  - "02-components"
+  - "3-1-rdf-triples"
+  - "2-1-class-individual-property"
 estimated_minutes: 35
 references:
   - title: "EDM Council — FIBO 공식 사이트"
@@ -41,6 +41,46 @@ FIBO의 설계에서 눈에 띄는 특징은 **실재론적 온톨로지(Realist
 - **모호한 개념은 명시적으로 표시한다.** 실무에서 쓰이지만 정의가 불분명한 개념은 `Provisional` 태그를 붙여 구분합니다.
 
 ---
+
+## FIBO 계층 구조
+
+```text
+FIBO 도메인 계층 (owl:imports 의존 관계)
+──────────────────────────────────────────────────────────
+                    ┌─────────┐
+                    │   FND   │  Foundations
+                    │기초 개념│  (날짜·통화·주소·법적능력)
+                    └────┬────┘
+                         │ imported by
+          ┌──────────────┼──────────────┐
+          ▼              ▼              ▼
+     ┌─────────┐   ┌─────────┐   ┌─────────┐
+     │   BE    │   │   FBC   │   │   IND   │
+     │Business │   │Financial│   │Indices &│
+     │Entities │   │Business │   │Indicators│
+     │법인·신탁│   │금융계약 │   │금리·지표│
+     └────┬────┘   └────┬────┘   └────┬────┘
+          │             │             │
+          └──────┬───────┘            │
+                 ▼                    ▼
+           ┌─────────┐          ┌─────────┐
+           │   SEC   │          │  LOAN   │
+           │Securities│         │  Loans  │
+           │주식·채권 │         │모기지·  │
+           │집합투자  │         │상업대출 │
+           └────┬────┘          └─────────┘
+                │
+                ▼
+           ┌─────────┐
+           │   DER   │
+           │Derivatives│
+           │선물·옵션│
+           │스왑·신용│
+           └─────────┘
+
+  각 도메인은 하위 도메인을 owl:imports로 참조
+  LEI (Legal Entity Identifier) ─── BE.LegalEntity 클래스에 연결
+```
 
 ## 모듈 구조
 

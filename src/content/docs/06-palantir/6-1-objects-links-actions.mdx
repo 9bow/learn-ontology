@@ -2,7 +2,7 @@
 title: "6-1. Foundry Ontology의 3대 축: Objects, Links, Actions"
 description: "Palantir Foundry Ontology의 핵심 개념인 Object Types, Link Types, Action Types의 역할과 상호관계를 학습합니다."
 sidebar:
-  order: 61
+  order: 1
 learning_objectives:
   - "Palantir Foundry Ontology의 세 가지 핵심 구성요소를 설명한다"
   - "Object Type이 전통적 RDF 클래스·LPG 노드와 어떻게 다른지 비교한다"
@@ -20,6 +20,37 @@ references:
   - title: "Palantir Technologies. Form 10-K Annual Report. SEC EDGAR (2024)"
     url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001321655"
 ---
+
+```text
+Foundry Ontology — 3대 축 구조
+┌─────────────────────────────────────────────────────────┐
+│                  Foundry Ontology                        │
+│                                                         │
+│  ┌──────────────────┐   ┌──────────────────────────┐   │
+│  │  Object Types    │   │       Link Types          │   │
+│  │  (무엇이 존재하나) │◀──│  (어떻게 연결되는가)       │   │
+│  │                  │──▶│                           │   │
+│  │  Aircraft        │   │  isAssignedTo (1:N)       │   │
+│  │  MaintenanceTask │   │  operatedBy   (N:1)       │   │
+│  │  Airline         │   │  requires     (N:M)       │   │
+│  │  Part            │   │                           │   │
+│  └──────────────────┘   └──────────────────────────┘   │
+│           │                          │                   │
+│           └────────────┬─────────────┘                   │
+│                        ▼                                 │
+│           ┌──────────────────────────┐                   │
+│           │      Action Types        │                   │
+│           │   (무엇을 할 수 있는가)    │                   │
+│           │                          │                   │
+│           │  RescheduleTask          │                   │
+│           │  ├─ 파라미터 검증          │                   │
+│           │  ├─ 권한 검사             │                   │
+│           │  ├─ Object 변경           │                   │
+│           │  └─ 감사 로그 자동 기록    │                   │
+│           └──────────────────────────┘                   │
+└─────────────────────────────────────────────────────────┘
+  읽기 전용 레이어 ──────────────▶ 쓰기 가능 운영 레이어
+```
 
 ## Palantir Foundry Ontology란
 

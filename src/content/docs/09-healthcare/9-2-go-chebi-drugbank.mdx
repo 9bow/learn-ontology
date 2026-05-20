@@ -29,6 +29,42 @@ Gene Ontology는 1998년 시작된 생물정보학 커뮤니티 프로젝트로,
 
 ### 세 서브온톨로지
 
+```text
+Gene Ontology 3개 측면 (서브온톨로지)
+──────────────────────────────────────────────────────────
+ ┌─────────────────────────────────────────────────────┐
+ │              GO:0003674 molecular_function           │
+ │  ┌─────────────────────────────────────────────┐   │
+ │  │ GO:0005488 binding                           │   │
+ │  │   └─ GO:0005515 protein binding             │   │
+ │  │ GO:0003824 catalytic activity               │   │
+ │  │   └─ GO:0004672 protein kinase activity     │   │
+ │  └─────────────────────────────────────────────┘   │
+ └─────────────────────────────────────────────────────┘
+
+ ┌─────────────────────────────────────────────────────┐
+ │              GO:0008150 biological_process           │
+ │  ┌─────────────────────────────────────────────┐   │
+ │  │ GO:0009987 cellular process                  │   │
+ │  │   └─ GO:0007049 cell cycle                  │   │
+ │  │ GO:0065007 biological regulation            │   │
+ │  │   └─ GO:0006915 apoptotic process           │   │
+ │  └─────────────────────────────────────────────┘   │
+ └─────────────────────────────────────────────────────┘
+
+ ┌─────────────────────────────────────────────────────┐
+ │              GO:0005575 cellular_component           │
+ │  ┌─────────────────────────────────────────────┐   │
+ │  │ GO:0005622 intracellular                     │   │
+ │  │   ├─ GO:0005634 nucleus                     │   │
+ │  │   └─ GO:0005737 cytoplasm                   │   │
+ │  └─────────────────────────────────────────────┘   │
+ └─────────────────────────────────────────────────────┘
+
+  유전자 산물(단백질)은 세 측면 모두에서 어노테이션 가능
+  예: TP53 → MF: DNA binding / BP: apoptosis / CC: nucleus
+```
+
 GO는 세 개의 독립적인 DAG(Directed Acyclic Graph) 온톨로지로 구성된다.
 
 **Molecular Function (MF):** 유전자 산물이 수행하는 분자 수준의 활동.
@@ -126,6 +162,38 @@ SELECT ?drug ?drugName ?target ?targetName WHERE {
   ?target db:name ?targetName .
   FILTER(CONTAINS(LCASE(?indication), "type 2 diabetes"))
 }
+```
+
+## 약물 지식그래프 구조
+
+```text
+DrugBank 약물-표적-경로 지식그래프
+──────────────────────────────────────────────────────────
+  ┌──────────────┐  inhibits  ┌──────────────┐
+  │ Drug         │───────────▶│ Target       │
+  │ (Metformin)  │            │ (AMPK)       │
+  │ DB00331      │  activates │ UniProt P54646│
+  └──────┬───────┘            └──────┬───────┘
+         │                           │
+  treats │                  involved_in│
+         ▼                           ▼
+  ┌──────────────┐           ┌──────────────┐
+  │ Disease      │           │ Pathway      │
+  │ (Type 2 DM)  │           │ (Glucose     │
+  │ SNOMED CT    │           │  Metabolism) │
+  └──────────────┘           │ KEGG hsa00010│
+                             └──────────────┘
+         │
+  interacts_with
+         ▼
+  ┌──────────────┐
+  │ Drug         │
+  │ (Warfarin)   │  ← DDI: 병용 시 출혈 위험
+  │ DB00682      │
+  └──────────────┘
+
+  ChEBI 연계: Metformin ──CHEBI:6801──▶ biguanide
+  GO 연계: AMPK ──GO:0004679──▶ AMP-activated kinase activity
 ```
 
 ## 세 온톨로지의 연계: 신약 발굴 파이프라인

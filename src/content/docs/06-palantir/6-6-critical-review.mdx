@@ -2,7 +2,7 @@
 title: "6-6. 비판적 검토 — 락인·비용·'OS for Enterprise' 주장의 검증"
 description: "Palantir Foundry Ontology에 대한 비판적 분석: 벤더 락인 구조, 비용 구조, 'Enterprise OS' 마케팅 주장의 기술적 타당성을 검증합니다."
 sidebar:
-  order: 66
+  order: 6
 learning_objectives:
   - "Foundry Ontology의 벤더 락인 메커니즘과 이탈 비용을 분석한다"
   - "Palantir의 'OS for Enterprise' 주장을 기술적으로 검증한다"
@@ -32,6 +32,25 @@ references:
 ---
 
 ## 벤더 락인 분석
+
+```text
+Palantir Foundry 락인 3계층
+┌─────────────────────────────────────────────────────────┐
+│  계층 3: 운영 프로세스 락인  (이탈 비용 최대)               │
+│  └─ Workshop 대시보드·업무 방식 전체 재설계 필요            │
+│                                                         │
+│  계층 2: 로직 락인                                        │
+│  └─ Foundry Functions (Foundry SDK 종속 TypeScript)     │
+│  └─ AIP Logic 에이전트 정의 (독점 포맷)                   │
+│                                                         │
+│  계층 1: 데이터 모델 락인  (이탈 비용 최소)                  │
+│  └─ Object Type / Link Type / Action Type               │
+│     → W3C OWL·RDF·SPARQL 아님 → 전체 재설계 필요          │
+└─────────────────────────────────────────────────────────┘
+       ▲
+비교: OWL 기반 온톨로지는 Protégé·GraphDB·Stardog 등으로
+      표준 포맷(Turtle/RDF) 그대로 이전 가능
+```
 
 ### 락인의 세 계층
 

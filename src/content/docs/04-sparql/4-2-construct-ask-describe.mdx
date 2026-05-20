@@ -2,7 +2,7 @@
 title: "4-2. CONSTRUCT, ASK, DESCRIBE"
 description: "SELECT 외의 세 가지 SPARQL 질의 형식—CONSTRUCT, ASK, DESCRIBE—의 용도와 실제 활용 패턴을 학습합니다."
 sidebar:
-  order: 42
+  order: 2
 learning_objectives:
   - "CONSTRUCT 쿼리로 새로운 RDF 그래프를 생성하는 방법을 이해한다"
   - "ASK 쿼리로 패턴 존재 여부를 불리언으로 확인한다"
@@ -21,6 +21,41 @@ references:
     url: "https://www.w3.org/TR/sparql11-query/#describe"
   - title: "DuCharme, B. Learning SPARQL 2nd ed. O'Reilly (2013)"
     url: "https://www.oreilly.com/library/view/learning-sparql/9781449371784/"
+---
+
+## SPARQL 4가지 쿼리 형식 비교
+
+```text
+┌──────────────────────────────────────────────────────────────┐
+│                  SPARQL 쿼리 형식 선택                        │
+├──────────────┬───────────────────────────────────────────────┤
+│   SELECT     │  결과: 표(Result Set)                         │
+│              │  용도: 데이터 조회·집계·필터링                 │
+│              │  예:  ?city ?name ?population                 │
+├──────────────┼───────────────────────────────────────────────┤
+│  CONSTRUCT   │  결과: RDF 그래프                             │
+│              │  용도: 온톨로지 매핑, ETL, 추론 물질화        │
+│              │  예:  Schema.org → FOAF 변환                  │
+│              │       추이적 관계 미리 계산해서 저장           │
+├──────────────┼───────────────────────────────────────────────┤
+│    ASK       │  결과: true / false (Boolean)                 │
+│              │  용도: 패턴 존재 확인, 유효성 검사            │
+│              │  예:  "급여 음수 직원이 있는가?" → false      │
+│              │       ※ SELECT COUNT보다 훨씬 빠름            │
+├──────────────┼───────────────────────────────────────────────┤
+│  DESCRIBE    │  결과: RDF 그래프 (구현 종속)                 │
+│              │  용도: 리소스 탐색·디버깅, Linked Data 브라우저│
+│              │  예:  DESCRIBE wd:Q9662  (삼성 전체 정보)     │
+│              │       ※ 결과 범위 구현마다 다름 → CONSTRUCT 권장│
+└──────────────┴───────────────────────────────────────────────┘
+
+선택 기준:
+  조회·집계 → SELECT
+  RDF 변환  → CONSTRUCT
+  존재 확인 → ASK
+  탐색·디버그→ DESCRIBE
+```
+
 ---
 
 ## SELECT 너머의 세 가지 쿼리 형식

@@ -25,6 +25,45 @@ references:
 
 import Quiz from '../../../components/learning/Quiz.tsx';
 
+## 일반 트리플 vs RDF-star 트리플 비교
+
+```text
+일반 RDF 트리플 (메타데이터 없음)
+─────────────────────────────────
+:김철수 ──worksAt──▶ :서울대학교
+
+
+RDF Reification (장황함, 4+ 트리플 필요)
+─────────────────────────────────────────
+:Statement1  rdf:type       rdf:Statement
+:Statement1  rdf:subject    :김철수
+:Statement1  rdf:predicate  :worksAt
+:Statement1  rdf:object     :서울대학교
+:Statement1  prov:generatedAtTime  "2022-03-01"
+:Statement1  :confidence    "0.95"
+
+
+Named Graph (그룹 단위 메타데이터)
+─────────────────────────────────────────
+<graph:hr-2022> {
+  :김철수 :worksAt :서울대학교 .
+  :김철수 :hasTitle "교수" .
+}
+<graph:hr-2022>  prov:wasGeneratedBy  :인사시스템
+<graph:hr-2022>  prov:generatedAtTime "2022-03-01"
+
+
+RDF-star (간결한 트리플 단위 메타데이터) ★ 권장
+─────────────────────────────────────────────────
+<< :김철수 :worksAt :서울대학교 >>
+    prov:generatedAtTime  "2022-03-01"^^xsd:date
+    :confidence           "0.95"^^xsd:decimal
+
+트리플 자체를 Subject로 사용 → 메타데이터 직접 부착
+```
+
+---
+
 ## 트리플에 대해 말하기
 
 RDF 트리플로 사실을 표현할 수 있습니다. 그런데 때로는 **트리플 자체에 대한 정보** — 메타데이터 — 가 필요합니다.

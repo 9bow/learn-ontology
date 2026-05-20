@@ -21,6 +21,40 @@ references:
     url: "https://www.w3.org/TR/rdf11-mt/"
 ---
 
+## RDFS 어휘 계층 구조
+
+```text
+RDFS 클래스 계층 (rdfs:subClassOf)
+────────────────────────────────────
+LivingThing
+  └── Animal          (rdfs:subClassOf LivingThing)
+        └── Mammal    (rdfs:subClassOf Animal)
+              ├── Person
+              │     └── Physician   ← :DrKim rdf:type Physician
+              │                        추론: DrKim은 Person, Animal, LivingThing
+              └── Bat
+
+RDFS 속성 계층 (rdfs:subPropertyOf)
+────────────────────────────────────
+isRelatedTo
+  └── prescribes      (rdfs:subPropertyOf isRelatedTo)
+        └── prescribesAntibiotics
+
+:DrKim prescribes :Aspirin
+  → 추론: :DrKim isRelatedTo :Aspirin  (subPropertyOf 전파)
+
+RDFS domain/range 추론
+────────────────────────────────────
+prescribes rdfs:domain Physician
+prescribes rdfs:range  Drug
+
+:DrKim prescribes :Aspirin
+  → 추론: :DrKim rdf:type Physician  (domain으로부터)
+  → 추론: :Aspirin rdf:type Drug     (range로부터)
+```
+
+---
+
 ## RDF만으로는 부족한 것
 
 이전 챕터에서 배운 RDF로는 "김철수는 사람이다"를 표현할 수 있습니다. 그런데 "사람(Person)이란 무엇인가?"를 RDF만으로는 정의할 수 없습니다. "의사는 사람의 일종이다"는 어떻게 표현할까요?

@@ -2,7 +2,7 @@
 title: "4-5. SPARQL vs Cypher vs GQL 비교"
 description: "그래프 질의 언어 세 가지—SPARQL, Cypher, GQL(ISO/IEC 39075:2024)—의 설계 철학, 문법, 표현력, 적합한 사용 맥락을 비교합니다."
 sidebar:
-  order: 45
+  order: 5
 learning_objectives:
   - "SPARQL, Cypher, GQL의 설계 목표 차이를 설명한다"
   - "동일한 질의를 세 언어로 표현하고 문법 차이를 파악한다"
@@ -21,6 +21,52 @@ references:
     url: "https://neo4j.com/docs/cypher-manual/current/"
   - title: "Angles et al. Foundations of Modern Query Languages for Graph Databases. ACM CSUR (2017)"
     url: "https://doi.org/10.1145/3104031"
+---
+
+## SPARQL vs Cypher vs GQL 한눈에 비교
+
+```text
+┌──────────────────┬──────────────────┬──────────────────┬──────────────────┐
+│     항목          │    SPARQL 1.1    │     Cypher        │   GQL (ISO 2024) │
+├──────────────────┼──────────────────┼──────────────────┼──────────────────┤
+│ 데이터 모델       │ RDF (트리플)     │ LPG (레이블 속성)│ LPG (속성 그래프)│
+│ 표준화 기구       │ W3C              │ openCypher/Neo4j │ ISO/IEC JTC1/SC32│
+│ 확정 연도         │ 2013             │ 사실상 표준       │ 2024년 4월       │
+├──────────────────┼──────────────────┼──────────────────┼──────────────────┤
+│ 노드 식별         │ URI (전역 유일)  │ 내부 ID + 레이블 │ 내부 ID + 레이블 │
+│ 엣지 속성         │ RDF-star 필요    │ 기본 지원 ✅     │ 기본 지원 ✅     │
+│ 세계 가정         │ OWA              │ CWA              │ CWA              │
+│ 분산 조인         │ SERVICE ✅       │ 미지원 ❌        │ GRAPH 절 (제한)  │
+│ OWL 추론 연계     │ 자연스러움 ✅    │ 별도 설정 필요   │ 명세 외          │
+├──────────────────┼──────────────────┼──────────────────┼──────────────────┤
+│ 쿼리 스타일       │ 트리플 패턴      │ ASCII-아트 그래프│ SQL 스타일       │
+│                  │ ?s ?p ?o         │ (a)-[:R]->(b)    │ MATCH ... RETURN │
+├──────────────────┼──────────────────┼──────────────────┼──────────────────┤
+│ 적합한 도메인     │ 시맨틱 웹·LOD    │ 운영 그래프 DB   │ 장기 벤더 독립   │
+│                  │ 분산 KG·학술     │ 추천·사기탐지    │ SQL 생태계 연계  │
+│                  │ Wikidata·DBpedia │ 소셜·공급망      │ ISO 준수 환경    │
+└──────────────────┴──────────────────┴──────────────────┴──────────────────┘
+
+  동일 질의 비교: "한국 소재 기업의 CEO 조회"
+
+  SPARQL:  SELECT ?company ?ceo WHERE {
+             ?company dbo:locationCity ?city ;
+                      dbo:keyPerson ?ceo .
+             ?city dbo:country dbr:South_Korea . }
+
+  Cypher:  MATCH (c:Company)-[:LOCATED_IN]->(:City)-[:IN_COUNTRY]->
+                 (:Country {name:'대한민국'}),
+                 (c)-[:HAS_CEO]->(ceo)
+           RETURN c.name, ceo.name
+
+  GQL:     FROM myGraph MATCH
+             (c:Company)-[:LOCATED_IN]->(city:City)
+             -[:IN_COUNTRY]->(country:Country)
+             (c)-[:HAS_CEO]->(ceo:Person)
+           WHERE country.name = '대한민국'
+           RETURN c.name, ceo.name
+```
+
 ---
 
 ## 세 언어, 세 가지 세계관
